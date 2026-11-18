@@ -1,0 +1,1831 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Grupo VíaMéxico | Consorcio de Autotransporte y Experiencia Digital CX</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        navy: {
+                            800: '#132D52',
+                            900: '#0B1F3A',
+                            950: '#061224',
+                        },
+                        terracotta: {
+                            500: '#E85D04',
+                            600: '#DC2F02',
+                        },
+                        gold: {
+                            400: '#FAA307',
+                            500: '#F48C06',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, h4, .font-display { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+        .hero-corporate {
+            background: radial-gradient(circle at 85% 20%, rgba(232, 93, 4, 0.18) 0%, transparent 45%),
+                        linear-gradient(135deg, #061224 0%, #0B1F3A 60%, #132D52 100%);
+        }
+
+        .seat-btn { transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1); }
+        .seat-btn:not(:disabled):hover { transform: translateY(-2px); }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.75; }
+            70% { transform: scale(1.25); opacity: 0; }
+            100% { transform: scale(1.25); opacity: 0; }
+        }
+        .genesys-pulse::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 9999px;
+            background-color: #E85D04;
+            z-index: -1;
+            animation: pulse-ring 2s infinite;
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(24px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .animate-slide-in { animation: slideInRight 0.35s ease-out forwards; }
+
+        .ticket-divider { position: relative; }
+        .ticket-divider::before, .ticket-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 22px;
+            height: 22px;
+            background-color: #f8fafc;
+            border-radius: 50%;
+            transform: translateY(-50%);
+        }
+        .ticket-divider::before { left: -11px; }
+        .ticket-divider::after { right: -11px; }
+    </style>
+
+    <!-- Genesys Cloud Bootstrap Configuration -->
+    <script type="text/javascript" charset="utf-8">
+      (function (g, e, n, es, ys) {
+        g['_genesysJs'] = e;
+        g[e] = g[e] || function () {
+          (g[e].q = g[e].q || []).push(arguments)
+        };
+        g[e].t = 1 * new Date();
+        g[e].c = es;
+        ys = document.createElement('script'); ys.async = 1; ys.src = n; ys.charset = 'utf-8'; document.head.appendChild(ys);
+      })(window, 'Genesys', 'https://apps.usw2.pure.cloud/genesys-bootstrap/genesys.min.js', {
+        environment: 'prod-usw2',
+        deploymentId: 'ec913086-9e9d-4e2b-8575-aecad3706705'
+      });
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-terracotta-500 selection:text-white">
+
+    <!-- ==================== NOTIFICACIONES TOAST ==================== -->
+    <div id="toast-container" class="fixed top-24 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- ==================== BARRA DE TELEMETRÍA GENESYS PREDICTIVE ENGAGEMENT ==================== -->
+    <div class="bg-navy-950 text-slate-300 border-b border-white/10 text-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5">
+                <span class="relative flex h-2.5 w-2.5">
+                    <span id="pe-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span id="pe-dot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span class="font-bold text-white tracking-wide">Genesys Predictive Engagement:</span>
+                <span id="pe-journey-status" class="px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-300 font-semibold">
+                    Navegando Landing Corporativa
+                </span>
+                <span id="pe-cart-indicator" class="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30 font-semibold">
+                    <i class="fa-solid fa-cart-shopping text-[10px]"></i>
+                    <span id="pe-cart-text">0 asientos en carrito</span>
+                </span>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="simulateQuickAbandonment()" class="px-3 py-1 rounded-lg bg-terracotta-500 hover:bg-terracotta-600 text-white font-bold transition-colors flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-bolt text-gold-400"></i>
+                    <span>Simular Abandono Rápido</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== HEADER / NAVEGACIÓN PRINCIPAL ==================== -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <!-- Logotipo Corporativo -->
+                <button onclick="switchView('inicio')" class="flex items-center gap-3 text-left group">
+                    <div class="w-11 h-11 rounded-xl bg-navy-900 flex items-center justify-center text-white shadow-md group-hover:bg-terracotta-500 transition-colors">
+                        <i class="fa-solid fa-bus-simple text-xl text-gold-400 group-hover:text-white"></i>
+                    </div>
+                    <div>
+                        <span class="text-xl font-extrabold tracking-tight text-navy-900 block leading-none font-display">
+                            Grupo <span class="text-terracotta-500">VíaMéxico</span>
+                        </span>
+                        <span class="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">Consorcio de Autotransporte</span>
+                    </div>
+                </button>
+
+                <!-- Pestañas de Navegación Desktop -->
+                <nav class="hidden md:flex items-center gap-1 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+                    <button onclick="switchView('inicio')" data-nav="inicio" class="nav-tab px-4 py-2 rounded-xl text-sm font-bold bg-white text-navy-900 shadow-sm transition-all">
+                        Inicio
+                    </button>
+                    <button onclick="switchView('flota')" data-nav="flota" class="nav-tab px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:text-navy-900 transition-all">
+                        Nuestras Unidades y Flota
+                    </button>
+                    <button onclick="switchView('compra')" data-nav="compra" class="nav-tab px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:text-navy-900 transition-all flex items-center gap-2">
+                        <span>Compra de Boletos</span>
+                        <span id="nav-cart-badge" class="hidden bg-terracotta-500 text-white text-[11px] font-extrabold px-2 py-0.5 rounded-full">0</span>
+                    </button>
+                    <button onclick="switchView('boletos')" data-nav="boletos" class="nav-tab px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:text-navy-900 transition-all flex items-center gap-1.5">
+                        <span>Mis Boletos</span>
+                        <span id="nav-tickets-count" class="bg-navy-900/10 text-navy-900 text-[11px] font-extrabold px-2 py-0.5 rounded-full">1</span>
+                    </button>
+                </nav>
+
+                <!-- CTA Directo -->
+                <div class="hidden lg:flex items-center gap-3">
+                    <button onclick="switchView('compra')" class="px-5 py-2.5 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-extrabold tracking-wide transition-all shadow-sm flex items-center gap-2">
+                        <i class="fa-solid fa-ticket text-gold-400"></i>
+                        <span>Cotizar Viaje</span>
+                    </button>
+                </div>
+
+                <!-- Botón Menú Móvil -->
+                <button onclick="toggleMobileMenu()" class="md:hidden p-2.5 rounded-xl text-slate-700 hover:bg-slate-100">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Menú Móvil -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-slate-200 px-4 py-4 space-y-2 shadow-lg">
+            <button onclick="switchView('inicio'); toggleMobileMenu()" class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold text-navy-900 hover:bg-slate-50">Inicio (Empresa y Flota)</button>
+            <button onclick="switchView('flota'); toggleMobileMenu()" class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold text-navy-900 hover:bg-slate-50">Nuestras Unidades y Flota</button>
+            <button onclick="switchView('compra'); toggleMobileMenu()" class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold text-terracotta-600 hover:bg-orange-50">Compra de Boletos</button>
+            <button onclick="switchView('boletos'); toggleMobileMenu()" class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold text-navy-900 hover:bg-slate-50">Mis Boletos</button>
+        </div>
+    </header>
+
+    <!-- ========================================================================= -->
+    <!-- VISTA 1: INICIO (LANDING CORPORATIVA, COBERTURA Y COMPARADOR DE CABINAS)  -->
+    <!-- ========================================================================= -->
+    <main id="view-inicio" class="view-section">
+        <!-- Hero Corporativo -->
+        <section class="hero-corporate text-white pt-14 pb-20 lg:pt-20 lg:pb-24 relative overflow-hidden">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                    <div class="lg:col-span-7">
+                        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-xs font-semibold text-gold-400 mb-6">
+                            <i class="fa-solid fa-shield-halved"></i>
+                            <span>Más de 45 años conectando a México con seguridad y telemetría satelital</span>
+                        </div>
+                        <h1 class="text-4xl sm:text-5xl lg:text-[52px] font-extrabold tracking-tight leading-[1.12] mb-6 font-display">
+                            Movilidad terrestre de clase mundial en todo <span class="text-gold-400">México</span>
+                        </h1>
+                        <p class="text-lg text-slate-300 leading-relaxed mb-8 max-w-2xl">
+                            En <strong class="text-white">Grupo VíaMéxico</strong> integramos cuatro líneas especializadas de autotransporte bajo los más altos estándares internacionales de confort, puntualidad y renovación vehicular.
+                        </p>
+
+                        <div class="flex flex-wrap items-center gap-4">
+                            <button onclick="switchView('compra')" class="px-7 py-4 rounded-2xl bg-terracotta-500 hover:bg-terracotta-600 text-white font-extrabold text-sm shadow-lg shadow-terracotta-500/30 transition-all flex items-center gap-2.5">
+                                <i class="fa-solid fa-ticket"></i>
+                                <span>Comprar Boletos</span>
+                            </button>
+                            <button onclick="switchView('flota')" class="px-7 py-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-bold text-sm transition-all flex items-center gap-2.5">
+                                <i class="fa-solid fa-bus"></i>
+                                <span>Conocer Nuestras Unidades</span>
+                            </button>
+                        </div>
+
+                        <!-- Indicadores Clave del Consorcio -->
+                        <div class="grid grid-cols-3 gap-6 pt-10 mt-10 border-t border-white/10">
+                            <div>
+                                <span class="text-2xl sm:text-3xl font-extrabold text-white block font-display">+1,450</span>
+                                <span class="text-xs text-slate-400">Autobuses de última generación</span>
+                            </div>
+                            <div>
+                                <span class="text-2xl sm:text-3xl font-extrabold text-gold-400 block font-display">28 Estados</span>
+                                <span class="text-xs text-slate-400">Cobertura en la República</span>
+                            </div>
+                            <div>
+                                <span class="text-2xl sm:text-3xl font-extrabold text-emerald-400 block font-display">99.4%</span>
+                                <span class="text-xs text-slate-400">Índice de puntualidad auditado</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ilustración SVG Detallada de Unidad Doble Piso VíaPlatino -->
+                    <div class="lg:col-span-5">
+                        <div class="bg-white/5 backdrop-blur-md border border-white/15 rounded-3xl p-6 shadow-2xl">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="px-3 py-1 rounded-lg bg-gold-500/20 text-gold-400 text-xs font-extrabold uppercase tracking-wider">Flota Insignia 2026</span>
+                                <span class="text-xs text-slate-300 font-semibold"><i class="fa-solid fa-satellite-dish text-emerald-400 mr-1"></i> Telemetría GPS 24/7</span>
+                            </div>
+
+                            <!-- SVG Autobús Ejecutivo Doble Piso -->
+                            <svg viewBox="0 0 480 230" class="w-full h-auto drop-shadow-xl my-2" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Carretera -->
+                                <rect x="10" y="198" width="460" height="6" rx="3" fill="#1e3a5f"/>
+                                <line x1="30" y1="201" x2="450" y2="201" stroke="#FAA307" stroke-width="2" stroke-dasharray="14 10"/>
+                                <!-- Carrocería Principal -->
+                                <path d="M45 42 C45 28, 60 22, 85 22 L410 22 C432 22, 445 35, 448 58 L455 155 C456 172, 445 180, 428 180 L48 180 C34 180, 28 170, 30 152 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                                <!-- Franja Corporativa Azul Marino -->
+                                <path d="M32 115 L452 115 L455 156 C455 170, 445 178, 430 178 L46 178 C34 178, 29 170, 30 155 Z" fill="#0B1F3A"/>
+                                <!-- Acento Terracota y Dorado -->
+                                <path d="M32 108 L451 108 L452 116 L32 116 Z" fill="#E85D04"/>
+                                <path d="M32 116 L452 116 L452 120 L32 120 Z" fill="#FAA307"/>
+                                <!-- Ventanas Piso Superior -->
+                                <rect x="65" y="34" width="355" height="34" rx="8" fill="#0f172a"/>
+                                <line x1="135" y1="34" x2="135" y2="68" stroke="#334155" stroke-width="2"/>
+                                <line x1="205" y1="34" x2="205" y2="68" stroke="#334155" stroke-width="2"/>
+                                <line x1="275" y1="34" x2="275" y2="68" stroke="#334155" stroke-width="2"/>
+                                <line x1="345" y1="34" x2="345" y2="68" stroke="#334155" stroke-width="2"/>
+                                <!-- Parabrisas Panorámico -->
+                                <path d="M415 34 L434 34 C441 34, 445 42, 447 68 L415 68 Z" fill="#1e293b"/>
+                                <!-- Ventanas Piso Inferior -->
+                                <rect x="115" y="76" width="245" height="26" rx="5" fill="#0f172a"/>
+                                <line x1="175" y1="76" x2="175" y2="102" stroke="#334155" stroke-width="2"/>
+                                <line x1="235" y1="76" x2="235" y2="102" stroke="#334155" stroke-width="2"/>
+                                <line x1="295" y1="76" x2="295" y2="102" stroke="#334155" stroke-width="2"/>
+                                <!-- Parabrisas Operador -->
+                                <path d="M398 76 L446 76 L450 104 L398 104 Z" fill="#1e293b"/>
+                                <!-- Texto en Costado -->
+                                <text x="155" y="148" fill="#ffffff" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="18" letter-spacing="1">VÍAPLATINO</text>
+                                <text x="156" y="162" fill="#FAA307" font-family="Inter, sans-serif" font-weight="700" font-size="9" letter-spacing="2">EJECUTIVO DOBLE PISO</text>
+                                <!-- Faro LED -->
+                                <path d="M442 155 L454 155 L454 165 L440 165 Z" fill="#fef08a"/>
+                                <!-- Ruedas -->
+                                <circle cx="105" cy="180" r="22" fill="#0f172a" stroke="#475569" stroke-width="3"/>
+                                <circle cx="105" cy="180" r="10" fill="#cbd5e1"/>
+                                <circle cx="155" cy="180" r="22" fill="#0f172a" stroke="#475569" stroke-width="3"/>
+                                <circle cx="155" cy="180" r="10" fill="#cbd5e1"/>
+                                <circle cx="385" cy="180" r="22" fill="#0f172a" stroke="#475569" stroke-width="3"/>
+                                <circle cx="385" cy="180" r="10" fill="#cbd5e1"/>
+                            </svg>
+
+                            <div class="grid grid-cols-3 gap-2 text-center mt-3 pt-3 border-t border-white/10 text-xs">
+                                <div class="bg-white/5 rounded-xl p-2">
+                                    <i class="fa-solid fa-wifi text-gold-400 mb-1 block"></i>
+                                    <span class="text-slate-200 font-semibold">Wi-Fi Starlink</span>
+                                </div>
+                                <div class="bg-white/5 rounded-xl p-2">
+                                    <i class="fa-solid fa-couch text-gold-400 mb-1 block"></i>
+                                    <span class="text-slate-200 font-semibold">Asientos 2x1</span>
+                                </div>
+                                <div class="bg-white/5 rounded-xl p-2">
+                                    <i class="fa-solid fa-plug-circle-bolt text-gold-400 mb-1 block"></i>
+                                    <span class="text-slate-200 font-semibold">USB-C / 110V</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Comparador Interactivo de Cabinas (Interior de Unidades) -->
+        <section class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+                <div>
+                    <span class="text-xs font-extrabold uppercase tracking-widest text-terracotta-500">Experiencia a Bordo</span>
+                    <h2 class="text-3xl font-extrabold text-navy-900 mt-1 font-display">Conoce el Interior de Nuestras Unidades</h2>
+                    <p class="text-slate-600 text-sm mt-1">Compara nuestras configuraciones de cabina diseñadas para trayectos ejecutivos, interurbanos o de conexión aérea.</p>
+                </div>
+
+                <!-- Selector de Cabina -->
+                <div class="inline-flex bg-slate-200/80 p-1.5 rounded-2xl">
+                    <button id="btn-cabin-2x1" onclick="selectCabinPreview('2x1')" class="px-4 py-2 rounded-xl text-xs font-extrabold bg-navy-900 text-white shadow-sm transition-all">
+                        Cabina Suite 2x1 (VíaPlatino)
+                    </button>
+                    <button id="btn-cabin-2x2" onclick="selectCabinPreview('2x2')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-navy-900 transition-all">
+                        Cabina Ejecutiva 2x2 (VíaPrimera)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Panel Visual Comparador de Cabina -->
+            <div id="cabin-preview-card" class="bg-white rounded-3xl border border-slate-200 shadow-lg p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                <!-- Renderizado dinámico por JS -->
+            </div>
+        </section>
+
+        <!-- Nuestras 4 Líneas del Consorcio -->
+        <section class="py-16 bg-slate-100 border-y border-slate-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto mb-12">
+                    <span class="text-xs font-extrabold uppercase tracking-widest text-navy-900 bg-white px-3.5 py-1.5 rounded-full border border-slate-200">Portafolio del Consorcio</span>
+                    <h2 class="text-3xl font-extrabold text-navy-900 mt-3 font-display">Cuatro Marcas, Un Mismo Estándar de Excelencia</h2>
+                    <p class="text-slate-600 text-sm mt-2">Selecciona cualquiera de nuestras líneas para explorar sus rutas y tarifas disponibles.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- VíaPlatino -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="px-3 py-1 rounded-lg bg-navy-900 text-gold-400 text-xs font-extrabold">EJECUTIVO 2x1</span>
+                                <i class="fa-solid fa-crown text-gold-500 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-extrabold text-navy-900 mb-1">VíaPlatino</h3>
+                            <p class="text-xs text-slate-500 mb-4">Doble Piso • Salas VIP • Reposet 160°</p>
+                            <p class="text-sm text-slate-600 mb-5 leading-relaxed">
+                                Nuestro servicio insignia de lujo con asientos individuales, pantalla táctil HD, Wi-Fi satelital y cafetería gourmet a bordo.
+                            </p>
+                        </div>
+                        <button onclick="goToBookingWithBrand('VíaPlatino')" class="w-full py-3 px-4 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-bold transition-colors flex items-center justify-center gap-2">
+                            <span>Explorar Rutas VíaPlatino</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- VíaPrimera -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="px-3 py-1 rounded-lg bg-blue-100 text-navy-900 text-xs font-extrabold">PRIMERA CLASE</span>
+                                <i class="fa-solid fa-bus text-navy-800 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-extrabold text-navy-900 mb-1">VíaPrimera</h3>
+                            <p class="text-xs text-slate-500 mb-4">Viajes Directos • Configuración 2x2</p>
+                            <p class="text-sm text-slate-600 mb-5 leading-relaxed">
+                                Conectividad directa punto a punto sin escalas intermedias entre las principales capitales y centros industriales de México.
+                            </p>
+                        </div>
+                        <button onclick="goToBookingWithBrand('VíaPrimera')" class="w-full py-3 px-4 rounded-xl bg-terracotta-500 hover:bg-terracotta-600 text-white text-xs font-bold transition-colors flex items-center justify-center gap-2">
+                            <span>Explorar Rutas VíaPrimera</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Enlace Regional -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="px-3 py-1 rounded-lg bg-emerald-100 text-emerald-800 text-xs font-extrabold">REGIONAL</span>
+                                <i class="fa-solid fa-route text-emerald-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-extrabold text-navy-900 mb-1">Enlace Regional</h3>
+                            <p class="text-xs text-slate-500 mb-4">Salidas cada 30 min • Cobertura Estatal</p>
+                            <p class="text-sm text-slate-600 mb-5 leading-relaxed">
+                                Alta frecuencia para conectar ciudades medias, corredores industriales y Pueblos Mágicos con tarifas accesibles.
+                            </p>
+                        </div>
+                        <button onclick="goToBookingWithBrand('EnlaceRegional')" class="w-full py-3 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors flex items-center justify-center gap-2">
+                            <span>Explorar Rutas Regionales</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- AeroVía Express -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="px-3 py-1 rounded-lg bg-amber-100 text-amber-900 text-xs font-extrabold">AEROPUERTOS</span>
+                                <i class="fa-solid fa-plane-departure text-terracotta-500 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-extrabold text-navy-900 mb-1">AeroVía Express</h3>
+                            <p class="text-xs text-slate-500 mb-4">Directo a AIFA • AICM • GDL • CUN</p>
+                            <p class="text-sm text-slate-600 mb-5 leading-relaxed">
+                                Conexiones terrestres sincronizadas con horarios de vuelo y bahías de equipaje ampliadas para viajeros internacionales.
+                            </p>
+                        </div>
+                        <button onclick="goToBookingWithBrand('AeroVía')" class="w-full py-3 px-4 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-bold transition-colors flex items-center justify-center gap-2">
+                            <span>Explorar Rutas Aeropuerto</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Estándares de Seguridad y Cobertura -->
+        <section class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-navy-900 rounded-3xl p-8 sm:p-12 text-white grid grid-cols-1 lg:grid-cols-12 gap-8 items-center shadow-xl">
+                <div class="lg:col-span-7 space-y-4">
+                    <span class="text-xs font-extrabold uppercase tracking-widest text-gold-400">Centro de Control y Telemetría</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold font-display">Viaja tranquilo: Monitoreo satelital y asistencia preventiva 24/7</h2>
+                    <p class="text-slate-300 text-sm leading-relaxed">
+                        Todas nuestras unidades cuentan con limitador inteligente de velocidad, sensores de fatiga para operadores certificados, frenado autónomo de emergencia y comunicación directa con nuestro Centro Nacional de Operaciones.
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 text-xs">
+                        <div class="flex items-center gap-3 bg-white/5 p-3.5 rounded-2xl border border-white/10">
+                            <i class="fa-solid fa-shield-cat text-xl text-emerald-400"></i>
+                            <div>
+                                <strong class="block text-white">Seguro de Viajero Amplio</strong>
+                                <span class="text-slate-400">Incluido automáticamente en cada boleto</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 bg-white/5 p-3.5 rounded-2xl border border-white/10">
+                            <i class="fa-solid fa-headset text-xl text-gold-400"></i>
+                            <div>
+                                <strong class="block text-white">Atención Omnicanal CX</strong>
+                                <span class="text-slate-400">Soporte inmediato vía Web, WhatsApp y Voz</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="lg:col-span-5 flex flex-col items-center lg:items-end justify-center">
+                    <div class="bg-white text-navy-900 rounded-2xl p-6 max-w-sm w-full shadow-lg">
+                        <h4 class="font-extrabold text-lg mb-2">¿Listo para tu próximo destino?</h4>
+                        <p class="text-xs text-slate-600 mb-5">Consulta horarios en tiempo real, elige tu asiento favorito y obtén tu pase de abordar digital.</p>
+                        <button onclick="switchView('compra')" class="w-full py-3.5 px-5 rounded-xl bg-terracotta-500 hover:bg-terracotta-600 text-white font-extrabold text-sm transition-all shadow-md flex items-center justify-center gap-2">
+                            <span>Ir al Buscador de Boletos</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ========================================================================= -->
+    <!-- VISTA 2: NUESTRAS UNIDADES Y FLOTA (ESPECIFICACIONES TÉCNICAS)            -->
+    <!-- ========================================================================= -->
+    <main id="view-flota" class="view-section hidden py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-3xl mb-10">
+            <span class="text-xs font-extrabold uppercase tracking-widest text-terracotta-500">Ingeniería y Confort</span>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-navy-900 mt-1 font-display">Nuestras Unidades y Flota</h1>
+            <p class="text-slate-600 text-sm sm:text-base mt-2">
+                Operamos una de las flotas más jóvenes de Latinoamérica con edad promedio menor a 3.2 años, equipada con carrocerías aerodinámicas y tecnología Euro VI.
+            </p>
+        </div>
+
+        <!-- Fichas Técnicas de Modelos -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+            <!-- Modelo 1: Volvo 9800 DD -->
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="bg-navy-900 text-white p-6 flex items-center justify-between">
+                    <div>
+                        <span class="px-2.5 py-1 rounded-md bg-gold-500 text-navy-950 text-xs font-extrabold">VíaPlatino Ejecutivo</span>
+                        <h3 class="text-2xl font-extrabold mt-2 font-display">Volvo 9800 Double Decker</h3>
+                        <p class="text-xs text-slate-300">Autobús de Dos Pisos • 15 metros de longitud</p>
+                    </div>
+                    <i class="fa-solid fa-bus-simple text-4xl text-gold-400/80"></i>
+                </div>
+                <div class="p-6 space-y-5">
+                    <div class="grid grid-cols-3 gap-3 text-center">
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <span class="text-xs text-slate-400 block">Capacidad</span>
+                            <strong class="text-base font-extrabold text-navy-900">44 Suites</strong>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <span class="text-xs text-slate-400 block">Configuración</span>
+                            <strong class="text-base font-extrabold text-navy-900">2x1 Reposet</strong>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <span class="text-xs text-slate-400 block">Reclinación</span>
+                            <strong class="text-base font-extrabold text-emerald-600">160° Cama</strong>
+                        </div>
+                    </div>
+                    <ul class="space-y-2.5 text-sm text-slate-600">
+                        <li class="flex items-center gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500"></i> Planta baja con salón ejecutivo privado y accesibilidad PMR.</li>
+                        <li class="flex items-center gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500"></i> Pantallas táctiles individuales de 13" con catálogo de cine y música.</li>
+                        <li class="flex items-center gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500"></i> Conectividad Wi-Fi Starlink de baja latencia en todo el trayecto.</li>
+                        <li class="flex items-center gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500"></i> Sanitarios independientes para damas y caballeros con purificación UV.</li>
+                    </ul>
+                    <button onclick="goToBookingWithBrand('VíaPlatino')" class="w-full py-3 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-extrabold transition-colors">
+                        Cotizar viaje en Volvo 9800 DD
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modelo 2: Irizar i8 -->
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="bg-navy-800 text-white p-6 flex items-center justify-between">
+                    <div>
+                        <span class="px-2.5 py-1 rounded-md bg-terracotta-500 text-white text-xs font-extrabold">VíaPrimera & AeroVía</span>
+                        <h3 class="text-2xl font-extrabold mt-2 font-display">Irizar i8 Integral</h3>
+                        <p class="text-xs text-slate-300">Aerodinámica de Alta Eficiencia • 14 metros</p>
+                    </div>
+                    <i class="fa-solid fa-bus text-4xl text-terracotta-500"></i>
+                </div>
+                <div class="p-6 space-y-5">
+                    <div class="grid grid-cols-3 gap-3 text-center">
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <span class="text-xs text-slate-400 block">Capacidad</span>
+                            <strong class="text-base font-extrabold text-navy-900">40 Asientos</strong>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <span class="text-xs text-slate-400 block">Configuración</span>
+                            <strong class="text-base font-extrabold text-navy-900">2x2 Ergo</strong>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <span class="text-xs text-slate-400 block">Equipaje</span>
+                            <strong class="text-base font-extrabold text-emerald-600">50 kg / pax</strong>
+                        </div>
+                    </div>
+                    <ul class="space-y-2.5 text-sm text-slate-600">
+                        <li class="flex items-center gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500"></i> Asientos ergonómicos con cabeceras ajustables y descansapiés.</li>
+                        <li class="flex items-center gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500"></i> Puertos de carga rápida USB-C y enchufes de 110V en cada fila.</li>
+                        <li class="flex items-center gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500"></i> Climatización inteligente con filtros HEPA de grado hospitalario.</li>
+                        <li class="flex items-center gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500"></i> Cajuelas neumáticas de gran volumen ideales para conexiones aéreas.</li>
+                    </ul>
+                    <button onclick="goToBookingWithBrand('VíaPrimera')" class="w-full py-3 rounded-xl bg-terracotta-500 hover:bg-terracotta-600 text-white text-xs font-extrabold transition-colors">
+                        Cotizar viaje en Irizar i8
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Normativa de Equipaje y Accesibilidad -->
+        <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+            <h3 class="text-xl font-extrabold text-navy-900 mb-4 font-display">Políticas de Equipaje y Accesibilidad a Bordo</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <i class="fa-solid fa-suitcase-rolling text-2xl text-terracotta-500 mb-2"></i>
+                    <h4 class="font-bold text-navy-900 mb-1">Equipaje Documentado</h4>
+                    <p class="text-xs text-slate-600 leading-relaxed">Hasta 2 maletas en cajuela con peso máximo combinado de 50 kg sin costo adicional en todas nuestras líneas.</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <i class="fa-solid fa-briefcase text-2xl text-navy-800 mb-2"></i>
+                    <h4 class="font-bold text-navy-900 mb-1">Equipaje de Mano</h4>
+                    <p class="text-xs text-slate-600 leading-relaxed">1 mochila o maleta tipo carry-on en compartimento superior de cabina (máx. 10 kg).</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <i class="fa-solid fa-wheelchair text-2xl text-emerald-600 mb-2"></i>
+                    <h4 class="font-bold text-navy-900 mb-1">Inclusión y Mascotas</h4>
+                    <p class="text-xs text-slate-600 leading-relaxed">Plataformas hidráulicas para sillas de ruedas y transporte Pet-Friendly en transportadora rígida.</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ========================================================================= -->
+    <!-- VISTA 3: COMPRA DE BOLETOS (BUSCADOR + SELECCIÓN DE ASIENTOS + CARRITO)   -->
+    <!-- ========================================================================= -->
+    <main id="view-compra" class="view-section hidden py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Buscador de Corridas -->
+        <div class="bg-navy-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl mb-8">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div>
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-gold-400">Taquilla Digital</span>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold font-display">Selecciona tu Ruta y Horario</h1>
+                </div>
+                <div class="flex items-center gap-2 bg-white/10 p-1 rounded-xl">
+                    <button type="button" id="btn-trip-oneway" onclick="setTripType('oneway')" class="px-4 py-2 rounded-lg text-xs font-extrabold bg-white text-navy-900 shadow-sm">Viaje Sencillo</button>
+                    <button type="button" id="btn-trip-round" onclick="setTripType('round')" class="px-4 py-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white">Viaje Redondo (-10%)</button>
+                </div>
+            </div>
+
+            <form onsubmit="handleSearch(event)" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                <div class="md:col-span-4">
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1.5">Terminal de Origen</label>
+                    <select id="origin-select" class="w-full px-4 py-3 bg-white text-navy-900 rounded-xl text-sm font-bold outline-none"></select>
+                </div>
+
+                <div class="md:col-span-1 flex justify-center">
+                    <button type="button" onclick="swapLocations()" class="w-11 h-11 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors" title="Intercambiar">
+                        <i class="fa-solid fa-right-left"></i>
+                    </button>
+                </div>
+
+                <div class="md:col-span-4">
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1.5">Terminal de Destino</label>
+                    <select id="destination-select" class="w-full px-4 py-3 bg-white text-navy-900 rounded-xl text-sm font-bold outline-none"></select>
+                </div>
+
+                <div class="md:col-span-3">
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1.5">Fecha de Salida</label>
+                    <input type="date" id="departure-date" required class="w-full px-4 py-3 bg-white text-navy-900 rounded-xl text-sm font-bold outline-none">
+                </div>
+
+                <div class="md:col-span-12 flex flex-wrap items-center justify-between gap-3 pt-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-xs text-slate-400">Rutas frecuentes:</span>
+                        <button type="button" onclick="quickRoute('CDMX - Central del Norte', 'Guadalajara - Nueva Central')" class="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg font-semibold">CDMX → Guadalajara</button>
+                        <button type="button" onclick="quickRoute('CDMX - Central del Norte', 'Querétaro - Terminal Autobuses')" class="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg font-semibold">CDMX → Querétaro</button>
+                        <button type="button" onclick="quickRoute('CDMX - TAPO (Oriente)', 'Puebla - CAPU')" class="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg font-semibold">CDMX → Puebla</button>
+                        <button type="button" onclick="quickRoute('CDMX - Central del Norte', 'Aeropuerto Internacional Felipe Ángeles (AIFA)')" class="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg font-semibold">CDMX → AIFA</button>
+                    </div>
+                    <button type="submit" class="px-7 py-3 bg-terracotta-500 hover:bg-terracotta-600 text-white font-extrabold rounded-xl text-sm shadow-lg transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <span>Actualizar Corridas</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Layout Principal: Lista de Corridas (Izquierda) + Carrito / Checkout (Derecha) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <!-- Columna Corridas y Selección de Asientos -->
+            <div class="lg:col-span-8 space-y-5">
+                <!-- Filtros por Línea -->
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 id="results-title" class="text-base font-extrabold text-navy-900">CDMX - Central del Norte → Guadalajara - Nueva Central</h2>
+                        <p id="results-subtitle" class="text-xs text-slate-500">Selecciona una corrida para elegir tus asientos en el autobús</p>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5" id="brand-filter-pills">
+                        <button onclick="filterResultsByBrand('ALL')" data-brand="ALL" class="brand-pill px-3 py-1.5 rounded-xl text-xs font-extrabold bg-navy-900 text-white">Todas</button>
+                        <button onclick="filterResultsByBrand('VíaPlatino')" data-brand="VíaPlatino" class="brand-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700">VíaPlatino</button>
+                        <button onclick="filterResultsByBrand('VíaPrimera')" data-brand="VíaPrimera" class="brand-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700">VíaPrimera</button>
+                        <button onclick="filterResultsByBrand('EnlaceRegional')" data-brand="EnlaceRegional" class="brand-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700">Enlace Regional</button>
+                        <button onclick="filterResultsByBrand('AeroVía')" data-brand="AeroVía" class="brand-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700">AeroVía</button>
+                    </div>
+                </div>
+
+                <!-- Lista de Corridas -->
+                <div id="schedules-list" class="space-y-4">
+                    <!-- Renderizado dinámico JS -->
+                </div>
+
+                <!-- Mapa de Asientos Inline (Se despliega al elegir una corrida) -->
+                <div id="inline-seat-selector" class="hidden bg-white rounded-3xl border-2 border-navy-900 shadow-xl p-6">
+                    <div class="flex items-center justify-between pb-4 mb-5 border-b border-slate-200">
+                        <div>
+                            <span id="seat-panel-brand" class="px-2.5 py-1 rounded-md bg-navy-900 text-gold-400 text-xs font-extrabold">VíaPlatino</span>
+                            <h3 class="text-lg font-extrabold text-navy-900 mt-1">Elige tus asientos para agregarlos al carrito</h3>
+                        </div>
+                        <button onclick="closeInlineSeatSelector()" class="text-xs font-bold text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-lg bg-slate-100">
+                            Cerrar mapa
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                        <!-- Croquis del Autobús -->
+                        <div class="md:col-span-7 bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                            <div class="flex items-center justify-center gap-4 text-[11px] font-bold mb-4">
+                                <span class="flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-white border-2 border-slate-300 inline-block"></span> Disponible</span>
+                                <span class="flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-terracotta-500 border-2 border-terracotta-600 inline-block"></span> En Carrito</span>
+                                <span class="flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-slate-300 inline-block"></span> Ocupado</span>
+                            </div>
+
+                            <div class="max-w-[260px] mx-auto bg-white rounded-t-3xl border-x-2 border-t-2 border-slate-300 p-4">
+                                <div class="flex justify-between text-[10px] font-bold text-slate-400 pb-2 mb-3 border-b border-dashed border-slate-300">
+                                    <span><i class="fa-solid fa-steering-wheel mr-1"></i> Operador</span>
+                                    <span>Puerta <i class="fa-solid fa-door-open"></i></span>
+                                </div>
+                                <div id="bus-seats-grid" class="space-y-2"></div>
+                                <div class="mt-4 pt-2 border-t border-dashed border-slate-300 text-center text-[10px] font-bold text-slate-400">
+                                    Sanitarios H/M • Cafetería
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Instrucción para Demo Predictive Engagement -->
+                        <div class="md:col-span-5 space-y-4">
+                            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-900">
+                                <p class="font-extrabold flex items-center gap-1.5 mb-1">
+                                    <i class="fa-solid fa-lightbulb text-amber-600"></i>
+                                    <span>Tip de Demo Predictive Engagement:</span>
+                                </p>
+                                <p class="leading-relaxed">
+                                    Selecciona 1 o más asientos para cargarlos en tu carrito lateral. Si luego haces clic en <strong>"Inicio"</strong> o <strong>"Nuestras Unidades"</strong> sin pagar, Genesys detectará el abandono en 2 segundos e invocará al Agente Virtual.
+                                </p>
+                            </div>
+                            <div class="text-xs text-slate-500 space-y-1">
+                                <p><i class="fa-solid fa-check text-emerald-500 mr-1.5"></i> Tarifas con IVA y Seguro de Viajero incluidos.</p>
+                                <p><i class="fa-solid fa-check text-emerald-500 mr-1.5"></i> Cambios sin costo hasta 2 horas antes.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna Derecha: Carrito / Checkout Persistente -->
+            <div class="lg:col-span-4 sticky top-24">
+                <div id="checkout-cart-card" class="bg-white rounded-3xl border border-slate-200 shadow-lg p-6">
+                    <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-cart-shopping text-terracotta-500"></i>
+                            <h3 class="text-lg font-extrabold text-navy-900 font-display">Tu Carrito de Viaje</h3>
+                        </div>
+                        <span id="cart-status-pill" class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-bold">Vacío</span>
+                    </div>
+
+                    <!-- Estado Carrito Vacío -->
+                    <div id="cart-empty-state" class="py-8 text-center">
+                        <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                            <i class="fa-solid fa-ticket text-2xl"></i>
+                        </div>
+                        <p class="text-sm font-bold text-slate-700">Aún no has seleccionado asientos</p>
+                        <p class="text-xs text-slate-500 mt-1">Elige una corrida a la izquierda y marca tus lugares en el mapa del autobús.</p>
+                    </div>
+
+                    <!-- Estado Carrito Con Asientos (Checkout) -->
+                    <div id="cart-filled-state" class="hidden space-y-4">
+                        <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2 text-xs">
+                            <div class="flex justify-between items-center">
+                                <span id="cart-brand-badge" class="px-2.5 py-0.5 rounded-md bg-navy-900 text-gold-400 font-extrabold">VíaPlatino</span>
+                                <span id="cart-date-label" class="font-bold text-slate-600">20 Nov 2026</span>
+                            </div>
+                            <p id="cart-route-label" class="font-extrabold text-navy-900 text-sm pt-1">CDMX Norte → Guadalajara</p>
+                            <p id="cart-time-label" class="text-slate-500">Salida: 07:30 hrs • Llegada: 14:20 hrs</p>
+                            <div class="pt-2 border-t border-slate-200 flex justify-between items-center">
+                                <span class="text-slate-500">Asientos seleccionados:</span>
+                                <span id="cart-seats-list" class="font-extrabold text-terracotta-600 text-sm">04A</span>
+                            </div>
+                        </div>
+
+                        <!-- Cupón de Descuento (Se llena automáticamente si el usuario acepta oferta de Genesys) -->
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Código Promocional</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="promo-code-input" placeholder="Ej. VIA10" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-extrabold uppercase outline-none focus:border-navy-900">
+                                <button type="button" onclick="applyPromoCode()" class="px-3.5 py-2 bg-navy-900 hover:bg-navy-800 text-white text-xs font-bold rounded-xl">Aplicar</button>
+                            </div>
+                            <p id="promo-applied-msg" class="hidden text-[11px] font-bold text-emerald-600 mt-1">
+                                <i class="fa-solid fa-tag mr-1"></i> Cupón VIA10 aplicado (10% de descuento extra)
+                            </p>
+                        </div>
+
+                        <!-- Nombre del Pasajero -->
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Pasajero Titular</label>
+                            <input type="text" id="passenger-name-input" value="Alejandro Mendoza" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold outline-none focus:border-navy-900">
+                        </div>
+
+                        <!-- Desglose de Total -->
+                        <div class="pt-3 border-t border-slate-200 space-y-1.5 text-sm">
+                            <div class="flex justify-between text-slate-500 text-xs">
+                                <span>Subtotal:</span>
+                                <span id="cart-subtotal">$0 MXN</span>
+                            </div>
+                            <div id="cart-discount-row" class="hidden flex justify-between text-emerald-600 font-bold text-xs">
+                                <span>Descuento Genesys (VIA10):</span>
+                                <span id="cart-discount-amount">-$0 MXN</span>
+                            </div>
+                            <div class="flex justify-between items-center pt-1">
+                                <span class="font-extrabold text-navy-900">Total a Pagar:</span>
+                                <span id="cart-total-price" class="text-2xl font-extrabold text-terracotta-600">$0 MXN</span>
+                            </div>
+                        </div>
+
+                        <button onclick="finalizeCartPurchase()" class="w-full py-3.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-lock"></i>
+                            <span>Finalizar Compra y Generar QR</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ========================================================================= -->
+    <!-- VISTA 4: MIS BOLETOS (PASES DE ABORDAR CON CÓDIGO QR)                     -->
+    <!-- ========================================================================= -->
+    <main id="view-boletos" class="view-section hidden py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+            <div>
+                <span class="text-xs font-extrabold uppercase tracking-widest text-terracotta-500">Pase de Abordar Digital</span>
+                <h1 class="text-3xl font-extrabold text-navy-900 mt-1 font-display">Mis Boletos Confirmados</h1>
+                <p class="text-slate-600 text-sm mt-1">Presenta el código QR en tu teléfono directamente en el andén de abordaje.</p>
+            </div>
+            <button onclick="switchView('compra')" class="px-5 py-2.5 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-bold flex items-center gap-2 self-start">
+                <i class="fa-solid fa-plus"></i>
+                <span>Comprar Nuevo Boleto</span>
+            </button>
+        </div>
+
+        <div id="my-tickets-container" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Renderizado dinámico JS -->
+        </div>
+    </main>
+
+    <!-- ==================== FOOTER CORPORATIVO ==================== -->
+    <footer class="bg-navy-950 text-slate-400 py-12 border-t border-white/10 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-navy-800 flex items-center justify-center text-gold-400">
+                    <i class="fa-solid fa-bus-simple"></i>
+                </div>
+                <span class="font-extrabold text-white text-sm font-display">Grupo VíaMéxico</span>
+                <span class="text-slate-600">|</span>
+                <span>VíaPlatino • VíaPrimera • Enlace Regional • AeroVía Express</span>
+            </div>
+            <p>© 2026 Grupo VíaMéxico. Demo interactiva de Genesys Cloud CX & Predictive Engagement.</p>
+        </div>
+    </footer>
+
+    <!-- ==================== MODAL PASE DE ABORDAR QR ==================== -->
+    <div id="qr-ticket-modal" class="fixed inset-0 z-50 hidden bg-navy-950/80 backdrop-blur-sm overflow-y-auto">
+        <div class="min-h-screen px-4 py-8 flex items-center justify-center">
+            <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
+                <div class="bg-navy-900 p-6 text-white text-center relative">
+                    <button onclick="closeQrModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 mx-auto flex items-center justify-center mb-2">
+                        <i class="fa-solid fa-circle-check text-2xl text-emerald-400"></i>
+                    </div>
+                    <h3 class="text-xl font-extrabold font-display">¡Boleto Emitido con Éxito!</h3>
+                    <p class="text-xs text-slate-300 mt-0.5">Tu lugar está asegurado. Muestra este QR al abordar.</p>
+                </div>
+                <div id="qr-modal-content" class="p-6"></div>
+                <div class="px-6 pb-6">
+                    <button onclick="closeQrModal()" class="w-full py-3 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-extrabold">
+                        Ir a Mis Boletos
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== ALERTA VISUAL GENESYS PREDICTIVE ENGAGEMENT ==================== -->
+    <div id="pe-trigger-banner" class="hidden fixed bottom-24 right-5 z-50 max-w-sm w-full bg-navy-900 text-white rounded-2xl shadow-2xl border border-gold-500/50 p-4 animate-slide-in">
+        <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-xl bg-terracotta-500 flex items-center justify-center shrink-0 text-white shadow-md">
+                <i class="fa-solid fa-radar text-lg"></i>
+            </div>
+            <div class="flex-1">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-gold-400">Genesys Predictive Engagement</span>
+                    <button onclick="dismissPeBanner()" class="text-slate-400 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <p class="text-xs font-bold text-white mt-0.5">Señal de Abandono Detectada: Boleto pendiente en carrito</p>
+                <p class="text-[11px] text-slate-300 mt-1">Invocando Agente Virtual para recuperar la conversión...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== WIDGET FLOTANTE AGENTE VIRTUAL GENESYS CLOUD CX ==================== -->
+    <div class="fixed bottom-5 right-5 z-50 flex flex-col items-end">
+        <div id="cx-chat-window" class="hidden mb-3 w-[360px] sm:w-[400px] bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+            <!-- Header Genesys CX -->
+            <div class="bg-navy-900 text-white p-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <div class="w-10 h-10 rounded-full bg-terracotta-500 flex items-center justify-center text-white font-bold shadow">
+                            <i class="fa-solid fa-headset text-lg"></i>
+                        </div>
+                        <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-navy-900"></span>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-extrabold leading-tight font-display">Agente Virtual Genesys CX</h4>
+                        <p id="chat-agent-status" class="text-[11px] text-gold-400 font-semibold">Grupo VíaMéxico • Asistencia Proactiva</p>
+                    </div>
+                </div>
+                <button onclick="toggleChatWidget(false)" class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-300 hover:text-white">
+                    <i class="fa-solid fa-chevron-down"></i>
+                </button>
+            </div>
+
+            <!-- Barra de Contexto de Jornada -->
+            <div class="bg-orange-50 px-4 py-2 border-b border-orange-100 flex items-center justify-between text-[11px] text-navy-900">
+                <span class="font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-bolt text-terracotta-500"></i>
+                    Contexto: <strong id="chat-journey-context">Exploración General</strong>
+                </span>
+                <span class="px-2 py-0.5 rounded bg-white text-terracotta-600 font-extrabold border border-orange-200">Genesys Cloud</span>
+            </div>
+
+            <!-- Mensajes -->
+            <div id="cx-chat-messages" class="p-4 h-80 overflow-y-auto space-y-3 bg-slate-50 text-xs sm:text-sm"></div>
+
+            <!-- Acciones Rápidas Dinámicas -->
+            <div id="cx-quick-replies" class="px-3 py-2.5 bg-white border-t border-slate-100 flex flex-wrap gap-1.5"></div>
+
+            <!-- Input -->
+            <form onsubmit="handleChatSubmit(event)" class="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
+                <input type="text" id="cx-chat-input" placeholder="Escribe tu respuesta..." class="flex-1 px-3.5 py-2 bg-slate-100 rounded-xl text-xs sm:text-sm focus:bg-white focus:ring-2 focus:ring-terracotta-500 outline-none">
+                <button type="submit" class="w-10 h-10 rounded-xl bg-terracotta-500 hover:bg-terracotta-600 text-white flex items-center justify-center shadow-sm">
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- Botón Flotante -->
+        <button onclick="toggleChatWidget()" class="genesys-pulse relative flex items-center gap-3 bg-navy-900 hover:bg-navy-800 text-white px-5 py-3.5 rounded-full shadow-2xl border border-white/10 transition-all hover:scale-105">
+            <i class="fa-solid fa-comments text-lg text-gold-400"></i>
+            <span class="font-extrabold text-xs sm:text-sm">Asistente Genesys CX</span>
+            <span id="chat-unread-badge" class="hidden w-5 h-5 rounded-full bg-terracotta-500 text-white text-[11px] font-extrabold flex items-center justify-center">1</span>
+        </button>
+    </div>
+
+    <!-- ==================== LÓGICA JAVASCRIPT ==================== -->
+    <script>
+        // 1. TERMINALES DE MÉXICO
+        const TERMINALS = [
+            "CDMX - Central del Norte",
+            "CDMX - TAPO (Oriente)",
+            "CDMX - Central del Sur (Taxqueña)",
+            "Aeropuerto Internacional Felipe Ángeles (AIFA)",
+            "Querétaro - Terminal Autobuses",
+            "Puebla - CAPU",
+            "Guadalajara - Nueva Central",
+            "Monterrey - Central de Autobuses",
+            "León - Central Metropolitana",
+            "Oaxaca - Terminal Primera Clase",
+            "Mérida - Terminal CAME",
+            "Cancún - Terminal Centro"
+        ];
+
+        const BRAND_STYLES = {
+            "VíaPlatino": { badge: "bg-navy-900 text-gold-400", category: "Ejecutivo Lujo 2x1", layout: "2x1" },
+            "VíaPrimera": { badge: "bg-blue-100 text-navy-900", category: "Primera Clase 2x2", layout: "2x2" },
+            "EnlaceRegional": { badge: "bg-emerald-100 text-emerald-800", category: "Económico Regional", layout: "2x2" },
+            "AeroVía": { badge: "bg-amber-100 text-amber-900", category: "Conexión Aeropuerto", layout: "2x2" }
+        };
+
+        // 2. ESTADO GLOBAL Y CARRITO
+        let appState = {
+            currentView: 'inicio',
+            tripType: 'oneway',
+            origin: "CDMX - Central del Norte",
+            destination: "Guadalajara - Nueva Central",
+            departureDate: "",
+            selectedBrandFilter: "ALL",
+            currentSchedules: [],
+            // Carrito de compra activo
+            cart: {
+                schedule: null,
+                seats: [],
+                promoApplied: false
+            },
+            // Temporizador de Genesys Predictive Engagement
+            abandonmentTimer: null,
+            abandonmentTriggeredForCurrentCart: false,
+            // Boletos comprados
+            tickets: [
+                {
+                    folio: "VMX-8492",
+                    brand: "VíaPlatino",
+                    origin: "CDMX - Central del Norte",
+                    destination: "Querétaro - Terminal Autobuses",
+                    date: "2026-11-22",
+                    departureTime: "09:30",
+                    seats: ["03A"],
+                    passenger: "Alejandro Mendoza",
+                    totalPaid: 680
+                }
+            ]
+        };
+
+        // 3. INICIALIZACIÓN
+        document.addEventListener('DOMContentLoaded', () => {
+            initSelectors();
+            selectCabinPreview('2x1');
+            generateSchedulesForRoute();
+            renderSchedules();
+            renderMyTickets();
+            initDefaultChat();
+        });
+
+        function initSelectors() {
+            const origSel = document.getElementById('origin-select');
+            const destSel = document.getElementById('destination-select');
+            TERMINALS.forEach(t => {
+                origSel.add(new Option(t, t));
+                destSel.add(new Option(t, t));
+            });
+            origSel.value = appState.origin;
+            destSel.value = appState.destination;
+
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            appState.departureDate = tomorrow.toISOString().split('T')[0];
+            document.getElementById('departure-date').value = appState.departureDate;
+        }
+
+        // 4. NAVEGACIÓN ENTRE VISTAS + MOTOR GENESYS PREDICTIVE ENGAGEMENT
+        function switchView(targetView) {
+            const previousView = appState.currentView;
+            appState.currentView = targetView;
+
+            // Ocultar todas las vistas y mostrar la seleccionada
+            document.querySelectorAll('.view-section').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(`view-${targetView}`).classList.remove('hidden');
+
+            // Actualizar estilos de pestañas
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                if (btn.dataset.nav === targetView) {
+                    btn.className = "nav-tab px-4 py-2 rounded-xl text-sm font-bold bg-white text-navy-900 shadow-sm transition-all flex items-center gap-2";
+                } else {
+                    btn.className = "nav-tab px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:text-navy-900 transition-all flex items-center gap-2";
+                }
+            });
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Evaluar reglas de Genesys Predictive Engagement
+            evaluatePredictiveEngagement(previousView, targetView);
+        }
+
+        function evaluatePredictiveEngagement(fromView, toView) {
+            const hasPendingCart = appState.cart.schedule !== null && appState.cart.seats.length > 0;
+
+            // Cancelar cualquier timer previo
+            if (appState.abandonmentTimer) {
+                clearTimeout(appState.abandonmentTimer);
+                appState.abandonmentTimer = null;
+            }
+
+            // Actualizar telemetría visual en barra superior
+            const viewNames = {
+                'inicio': 'Navegando Landing Corporativa',
+                'flota': 'Explorando Unidades y Flota',
+                'compra': 'En Proceso de Compra (Taquilla)',
+                'boletos': 'Consultando Mis Boletos'
+            };
+
+            if (toView !== 'compra' && hasPendingCart) {
+                updatePeTelemetryBar("Señal Detectada: Evaluando abandono de carrito...", "amber");
+
+                // Disparar trigger exactamente a los 2 segundos si no ha sido disparado para este carrito
+                appState.abandonmentTimer = setTimeout(() => {
+                    triggerGenesysCartAbandonment();
+                }, 2000);
+            } else {
+                updatePeTelemetryBar(viewNames[toView] || 'Monitoreando Jornada', "emerald");
+            }
+        }
+
+        function updatePeTelemetryBar(statusText, color) {
+            const statusEl = document.getElementById('pe-journey-status');
+            const dotEl = document.getElementById('pe-dot');
+            const pingEl = document.getElementById('pe-ping');
+
+            statusEl.textContent = statusText;
+            if (color === 'amber') {
+                statusEl.className = "px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-bold border border-amber-500/30";
+                dotEl.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-amber-400";
+                pingEl.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75";
+            } else if (color === 'red') {
+                statusEl.className = "px-2.5 py-0.5 rounded-full bg-terracotta-500 text-white font-extrabold";
+                dotEl.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-terracotta-500";
+                pingEl.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-terracotta-500 opacity-75";
+            } else {
+                statusEl.className = "px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-300 font-semibold";
+                dotEl.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500";
+                pingEl.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
+            }
+        }
+
+        function triggerGenesysCartAbandonment() {
+            const sched = appState.cart.schedule;
+            const seats = appState.cart.seats;
+            if (!sched || seats.length === 0) return;
+
+            const total = calculateCartTotals().total;
+            const origShort = appState.origin.split(' - ')[0];
+            const destShort = appState.destination.split(' - ')[0];
+
+            // 1. Actualizar barra de telemetría
+            updatePeTelemetryBar("Carrito Abandonado - ¡Trigger Disparado!", "red");
+
+            // 2. Mostrar banner visual de Predictive Engagement
+            const banner = document.getElementById('pe-trigger-banner');
+            banner.classList.remove('hidden');
+            setTimeout(() => banner.classList.add('hidden'), 6500);
+
+            // 3. Abrir automáticamente el Agente Virtual de Genesys Cloud CX
+            toggleChatWidget(true);
+
+            // 4. Actualizar contexto del chat
+            document.getElementById('chat-journey-context').textContent = `Abandono: ${origShort} → ${destShort}`;
+
+            // 5. Enviar mensaje proactivo hiper-personalizado
+            const proactiveMsg = `
+                ¡Hola! 👋 Noté que dejaste pendiente tu viaje de <strong>${origShort} a ${destShort}</strong> en <strong>${sched.brand}</strong> (Asiento${seats.length > 1 ? 's' : ''} <strong>${seats.join(', ')}</strong>) por <strong>$${total.toLocaleString('es-MX')} MXN</strong>.<br><br>
+                ¿Tuviste algún inconveniente con el pago o te gustaría que te ayude a asegurar tu lugar con un <strong>10% de descuento (Cupón VIA10)</strong> o Meses Sin Intereses?
+            `;
+            appendBotMessage(proactiveMsg);
+
+            // 6. Configurar botones de acción rápida orientados a recuperación
+            setQuickReplies([
+                { label: "⚡ Aplicar cupón VIA10 y pagar", action: "recover_discount" },
+                { label: "🛒 Retomar compra ahora", action: "recover_resume" },
+                { label: "🧳 Dudas sobre equipaje", action: "info_equipaje" },
+                { label: "🎧 Hablar con un ejecutivo", action: "escalate_human" }
+            ]);
+        }
+
+        function dismissPeBanner() {
+            document.getElementById('pe-trigger-banner').classList.add('hidden');
+        }
+
+        // Botón de demostración rápida para el presentador
+        function simulateQuickAbandonment() {
+            // Si el carrito está vacío, precarga un viaje atractivo (CDMX -> Guadalajara en VíaPlatino)
+            if (!appState.cart.schedule || appState.cart.seats.length === 0) {
+                appState.origin = "CDMX - Central del Norte";
+                appState.destination = "Guadalajara - Nueva Central";
+                document.getElementById('origin-select').value = appState.origin;
+                document.getElementById('destination-select').value = appState.destination;
+                generateSchedulesForRoute();
+                renderSchedules();
+
+                const platinoSched = appState.currentSchedules.find(s => s.brand === "VíaPlatino");
+                appState.cart.schedule = platinoSched;
+                appState.cart.seats = ["04A"];
+                appState.cart.promoApplied = false;
+                updateCartUI();
+            }
+
+            // Lleva al usuario a Inicio y dispara la detección de abandono
+            switchView('inicio');
+            showToast("Simulando salida del checkout con boleto pendiente...", "info");
+        }
+
+        // 5. COMPARADOR DE CABINAS EN LANDING
+        function selectCabinPreview(type) {
+            const btn2x1 = document.getElementById('btn-cabin-2x1');
+            const btn2x2 = document.getElementById('btn-cabin-2x2');
+            const card = document.getElementById('cabin-preview-card');
+
+            if (type === '2x1') {
+                btn2x1.className = "px-4 py-2 rounded-xl text-xs font-extrabold bg-navy-900 text-white shadow-sm transition-all";
+                btn2x2.className = "px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-navy-900 transition-all";
+
+                card.innerHTML = `
+                    <div class="lg:col-span-6 bg-slate-50 rounded-2xl p-6 border border-slate-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-extrabold uppercase text-navy-900">Distribución Interior 2x1 (Suite Individual)</span>
+                            <span class="px-2.5 py-0.5 rounded-full bg-gold-400/20 text-amber-900 text-[11px] font-bold">VíaPlatino</span>
+                        </div>
+                        <svg viewBox="0 0 360 150" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="10" y="10" width="340" height="130" rx="16" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+                            <!-- Fila Izquierda Doble -->
+                            <rect x="40" y="24" width="44" height="32" rx="6" fill="#0B1F3A"/><text x="53" y="44" fill="#FAA307" font-size="10" font-weight="bold">01A</text>
+                            <rect x="92" y="24" width="44" height="32" rx="6" fill="#0B1F3A"/><text x="105" y="44" fill="#FAA307" font-size="10" font-weight="bold">01B</text>
+                            <rect x="165" y="24" width="44" height="32" rx="6" fill="#0B1F3A"/><text x="178" y="44" fill="#FAA307" font-size="10" font-weight="bold">02A</text>
+                            <rect x="217" y="24" width="44" height="32" rx="6" fill="#0B1F3A"/><text x="230" y="44" fill="#FAA307" font-size="10" font-weight="bold">02B</text>
+                            <!-- Pasillo Central Amplio -->
+                            <line x1="30" y1="76" x2="330" y2="76" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="6 4"/>
+                            <text x="145" y="79" fill="#94a3b8" font-size="9" font-weight="bold">PASILLO AMPLIO</text>
+                            <!-- Fila Derecha Individual -->
+                            <rect x="40" y="94" width="52" height="34" rx="7" fill="#E85D04"/><text x="56" y="115" fill="#ffffff" font-size="10" font-weight="bold">01C</text>
+                            <rect x="165" y="94" width="52" height="34" rx="7" fill="#E85D04"/><text x="181" y="115" fill="#ffffff" font-size="10" font-weight="bold">02C</text>
+                            <rect x="280" y="94" width="52" height="34" rx="7" fill="#E85D04"/><text x="296" y="115" fill="#ffffff" font-size="10" font-weight="bold">03C</text>
+                        </svg>
+                    </div>
+                    <div class="lg:col-span-6 space-y-4">
+                        <span class="px-3 py-1 rounded-lg bg-navy-900 text-gold-400 text-xs font-extrabold">MÁXIMA PRIVACIDAD</span>
+                        <h3 class="text-2xl font-extrabold text-navy-900 font-display">Cabina Suite 2x1 con Reposet Tipo Cama</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Diseñada para viajeros ejecutivos y trayectos nocturnos largos. Cuenta con fila individual del lado derecho (sin vecino al lado), mayor separación entre asientos y cortinas de privacidad.
+                        </p>
+                        <div class="grid grid-cols-2 gap-3 text-xs font-bold text-navy-900">
+                            <div class="flex items-center gap-2"><i class="fa-solid fa-tv text-terracotta-500"></i> Pantalla táctil 13" HD</div>
+                            <div class="flex items-center gap-2"><i class="fa-solid fa-wifi text-terracotta-500"></i> Internet Starlink ilimitado</div>
+                            <div class="flex items-center gap-2"><i class="fa-solid fa-mug-hot text-terracotta-500"></i> Box lunch y café gourmet</div>
+                            <div class="flex items-center gap-2"><i class="fa-solid fa-plug text-terracotta-500"></i> Carga rápida USB-C 65W</div>
+                        </div>
+                        <button onclick="goToBookingWithBrand('VíaPlatino')" class="px-6 py-3 rounded-xl bg-terracotta-500 hover:bg-terracotta-600 text-white text-xs font-extrabold transition-colors">
+                            Reservar en Cabina 2x1
+                        </button>
+                    </div>
+                `;
+            } else {
+                btn2x2.className = "px-4 py-2 rounded-xl text-xs font-extrabold bg-navy-900 text-white shadow-sm transition-all";
+                btn2x1.className = "px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-navy-900 transition-all";
+
+                card.innerHTML = `
+                    <div class="lg:col-span-6 bg-slate-50 rounded-2xl p-6 border border-slate-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-extrabold uppercase text-navy-900">Distribución Interior 2x2 (Primera Clase)</span>
+                            <span class="px-2.5 py-0.5 rounded-full bg-blue-100 text-navy-900 text-[11px] font-bold">VíaPrimera</span>
+                        </div>
+                        <svg viewBox="0 0 360 150" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="10" y="10" width="340" height="130" rx="16" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+                            <rect x="45" y="22" width="42" height="26" rx="5" fill="#132D52"/><text x="57" y="39" fill="#ffffff" font-size="9" font-weight="bold">01A</text>
+                            <rect x="95" y="22" width="42" height="26" rx="5" fill="#132D52"/><text x="107" y="39" fill="#ffffff" font-size="9" font-weight="bold">01B</text>
+                            <rect x="180" y="22" width="42" height="26" rx="5" fill="#132D52"/><text x="192" y="39" fill="#ffffff" font-size="9" font-weight="bold">02A</text>
+                            <rect x="230" y="22" width="42" height="26" rx="5" fill="#132D52"/><text x="242" y="39" fill="#ffffff" font-size="9" font-weight="bold">02B</text>
+                            <line x1="30" y1="75" x2="330" y2="75" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="6 4"/>
+                            <rect x="45" y="96" width="42" height="26" rx="5" fill="#132D52"/><text x="57" y="113" fill="#ffffff" font-size="9" font-weight="bold">01C</text>
+                            <rect x="95" y="96" width="42" height="26" rx="5" fill="#132D52"/><text x="107" y="113" fill="#ffffff" font-size="9" font-weight="bold">01D</text>
+                            <rect x="180" y="96" width="42" height="26" rx="5" fill="#132D52"/><text x="192" y="113" fill="#ffffff" font-size="9" font-weight="bold">02C</text>
+                            <rect x="230" y="96" width="42" height="26" rx="5" fill="#132D52"/><text x="242" y="113" fill="#ffffff" font-size="9" font-weight="bold">02D</text>
+                        </svg>
+                    </div>
+                    <div class="lg:col-span-6 space-y-4">
+                        <span class="px-3 py-1 rounded-lg bg-blue-100 text-navy-900 text-xs font-extrabold">CONFORT Y EFICIENCIA</span>
+                        <h3 class="text-2xl font-extrabold text-navy-900 font-display">Cabina Ejecutiva 2x2 Ergonómica</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Ideal para viajes directos interurbanos y en familia. Butacas anatómicas de espuma con memoria, descansabrazos abatibles y climatización individual por asiento.
+                        </p>
+                        <div class="grid grid-cols-2 gap-3 text-xs font-bold text-navy-900">
+                            <div class="flex items-center gap-2"><i class="fa-solid fa-chair text-terracotta-500"></i> 40 butacas reclinables</div>
+                            <div class="flex items-center gap-2"><i class="fa-solid fa-snowflake text-terracotta-500"></i> Aire acondicionado HEPA</div>
+                            <div class="flex items-center gap-2"><i class="fa-solid fa-restroom text-terracotta-500"></i> Sanitarios H / M a bordo</div>
+                            <div class="flex items-center gap-2"><i class="fa-solid fa-bolt text-terracotta-500"></i> Contactos 110V + USB</div>
+                        </div>
+                        <button onclick="goToBookingWithBrand('VíaPrimera')" class="px-6 py-3 rounded-xl bg-navy-900 hover:bg-navy-800 text-white text-xs font-extrabold transition-colors">
+                            Reservar en Cabina 2x2
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // 6. TAQUILLA: BÚSQUEDA, SELECCIÓN DE ASIENTOS Y CARRITO
+        function goToBookingWithBrand(brand) {
+            switchView('compra');
+            filterResultsByBrand(brand);
+        }
+
+        function setTripType(type) {
+            appState.tripType = type;
+            const btnOne = document.getElementById('btn-trip-oneway');
+            const btnRound = document.getElementById('btn-trip-round');
+            if (type === 'oneway') {
+                btnOne.className = "px-4 py-2 rounded-lg text-xs font-extrabold bg-white text-navy-900 shadow-sm";
+                btnRound.className = "px-4 py-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white";
+            } else {
+                btnRound.className = "px-4 py-2 rounded-lg text-xs font-extrabold bg-white text-navy-900 shadow-sm";
+                btnOne.className = "px-4 py-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white";
+            }
+            renderSchedules();
+            updateCartUI();
+        }
+
+        function swapLocations() {
+            const o = document.getElementById('origin-select');
+            const d = document.getElementById('destination-select');
+            const tmp = o.value;
+            o.value = d.value;
+            d.value = tmp;
+        }
+
+        function quickRoute(orig, dest) {
+            document.getElementById('origin-select').value = orig;
+            document.getElementById('destination-select').value = dest;
+            handleSearch(new Event('submit'));
+        }
+
+        function handleSearch(e) {
+            if (e) e.preventDefault();
+            const orig = document.getElementById('origin-select').value;
+            const dest = document.getElementById('destination-select').value;
+            if (orig === dest) {
+                showToast("Selecciona un destino distinto al origen.", "warning");
+                return;
+            }
+            appState.origin = orig;
+            appState.destination = dest;
+            appState.departureDate = document.getElementById('departure-date').value;
+            generateSchedulesForRoute();
+            renderSchedules();
+        }
+
+        function generateSchedulesForRoute() {
+            const key = `${appState.origin}-${appState.destination}`;
+            let basePrice = 890;
+            let mins = 410;
+
+            if (key.includes("Querétaro")) { basePrice = 440; mins = 175; }
+            else if (key.includes("Puebla")) { basePrice = 270; mins = 130; }
+            else if (key.includes("AIFA")) { basePrice = 180; mins = 75; }
+            else if (key.includes("Monterrey")) { basePrice = 1380; mins = 650; }
+            else if (key.includes("Cancún") || key.includes("Mérida")) { basePrice = 560; mins = 240; }
+
+            const fmtDur = (m) => `${Math.floor(m / 60)}h ${m % 60}m`;
+            const addMins = (t, add) => {
+                const [h, m] = t.split(':').map(Number);
+                const tot = h * 60 + m + add;
+                return `${Math.floor((tot / 60) % 24).toString().padStart(2, '0')}:${(tot % 60).toString().padStart(2, '0')}`;
+            };
+
+            appState.currentSchedules = [
+                {
+                    id: "COR-201",
+                    brand: "VíaPlatino",
+                    departureTime: "08:00",
+                    arrivalTime: addMins("08:00", mins),
+                    duration: fmtDur(mins),
+                    price: Math.round(basePrice * 1.45),
+                    occupiedSeats: ["01A", "02B", "03C", "05A"]
+                },
+                {
+                    id: "COR-202",
+                    brand: "VíaPrimera",
+                    departureTime: "10:30",
+                    arrivalTime: addMins("10:30", mins + 10),
+                    duration: fmtDur(mins + 10),
+                    price: basePrice,
+                    occupiedSeats: ["01A", "01B", "04C", "04D"]
+                },
+                {
+                    id: "COR-203",
+                    brand: "AeroVía",
+                    departureTime: "13:00",
+                    arrivalTime: addMins("13:00", mins),
+                    duration: fmtDur(mins),
+                    price: Math.round(basePrice * 1.15),
+                    occupiedSeats: ["02A", "02B", "06C"]
+                },
+                {
+                    id: "COR-204",
+                    brand: "EnlaceRegional",
+                    departureTime: "16:15",
+                    arrivalTime: addMins("16:15", mins + 30),
+                    duration: fmtDur(mins + 30),
+                    price: Math.round(basePrice * 0.78),
+                    occupiedSeats: ["01C", "03D"]
+                }
+            ];
+        }
+
+        function filterResultsByBrand(brand) {
+            appState.selectedBrandFilter = brand;
+            document.querySelectorAll('.brand-pill').forEach(b => {
+                b.className = b.dataset.brand === brand
+                    ? "brand-pill px-3 py-1.5 rounded-xl text-xs font-extrabold bg-navy-900 text-white"
+                    : "brand-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700";
+            });
+            renderSchedules();
+        }
+
+        function renderSchedules() {
+            document.getElementById('results-title').textContent = `${appState.origin} → ${appState.destination}`;
+            const list = document.getElementById('schedules-list');
+            const filtered = appState.selectedBrandFilter === "ALL"
+                ? appState.currentSchedules
+                : appState.currentSchedules.filter(s => s.brand === appState.selectedBrandFilter);
+
+            list.innerHTML = filtered.map(sched => {
+                const st = BRAND_STYLES[sched.brand];
+                const price = appState.tripType === 'round' ? Math.round(sched.price * 0.9) : sched.price;
+                const isSelectedSched = appState.cart.schedule && appState.cart.schedule.id === sched.id;
+
+                return `
+                    <div class="bg-white rounded-2xl border ${isSelectedSched ? 'border-2 border-terracotta-500 shadow-md' : 'border-slate-200'} p-5 transition-all">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="px-2.5 py-1 rounded-lg text-xs font-extrabold ${st.badge}">${sched.brand}</span>
+                                    <span class="text-xs text-slate-500 font-medium">${st.category}</span>
+                                </div>
+                                <div class="flex items-center gap-4 mt-2">
+                                    <div>
+                                        <span class="text-xl font-extrabold text-navy-900">${sched.departureTime}</span>
+                                        <span class="text-[11px] text-slate-400 block">Salida</span>
+                                    </div>
+                                    <div class="text-xs text-slate-400 font-semibold px-3 py-1 bg-slate-50 rounded-full border border-slate-100">
+                                        ${sched.duration}
+                                    </div>
+                                    <div>
+                                        <span class="text-xl font-extrabold text-navy-900">${sched.arrivalTime}</span>
+                                        <span class="text-[11px] text-slate-400 block">Llegada</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100">
+                                <div class="sm:text-right">
+                                    <span class="text-xl font-extrabold text-navy-900">$${price.toLocaleString('es-MX')} <span class="text-xs font-semibold text-slate-500">MXN</span></span>
+                                    <span class="text-[11px] text-slate-400 block">por asiento</span>
+                                </div>
+                                <button onclick="openInlineSeatSelector('${sched.id}')" class="mt-0 sm:mt-2 px-4 py-2.5 rounded-xl bg-navy-900 hover:bg-terracotta-500 text-white text-xs font-extrabold transition-colors">
+                                    ${isSelectedSched ? 'Editar Asientos' : 'Elegir Asientos'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openInlineSeatSelector(schedId) {
+            const sched = appState.currentSchedules.find(s => s.id === schedId);
+            if (!sched) return;
+
+            // Si cambia de corrida, reiniciar asientos en carrito
+            if (!appState.cart.schedule || appState.cart.schedule.id !== sched.id) {
+                appState.cart.schedule = sched;
+                appState.cart.seats = [];
+            }
+
+            document.getElementById('seat-panel-brand').textContent = `${sched.brand} • Salida ${sched.departureTime} hrs`;
+            document.getElementById('inline-seat-selector').classList.remove('hidden');
+            renderSchedules();
+            renderBusSeatMap(sched, BRAND_STYLES[sched.brand].layout);
+            updateCartUI();
+
+            document.getElementById('inline-seat-selector').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function closeInlineSeatSelector() {
+            document.getElementById('inline-seat-selector').classList.add('hidden');
+        }
+
+        function renderBusSeatMap(sched, layout) {
+            const grid = document.getElementById('bus-seats-grid');
+            let html = '';
+            for (let r = 1; r <= 6; r++) {
+                const row = r.toString().padStart(2, '0');
+                if (layout === "2x1") {
+                    html += `
+                        <div class="grid grid-cols-5 gap-1.5 items-center">
+                            ${seatButton(`${row}A`, sched.occupiedSeats)}
+                            ${seatButton(`${row}B`, sched.occupiedSeats)}
+                            <div class="text-center text-[10px] font-bold text-slate-300">${row}</div>
+                            <div></div>
+                            ${seatButton(`${row}C`, sched.occupiedSeats)}
+                        </div>
+                    `;
+                } else {
+                    html += `
+                        <div class="grid grid-cols-5 gap-1.5 items-center">
+                            ${seatButton(`${row}A`, sched.occupiedSeats)}
+                            ${seatButton(`${row}B`, sched.occupiedSeats)}
+                            <div class="text-center text-[10px] font-bold text-slate-300">${row}</div>
+                            ${seatButton(`${row}C`, sched.occupiedSeats)}
+                            ${seatButton(`${row}D`, sched.occupiedSeats)}
+                        </div>
+                    `;
+                }
+            }
+            grid.innerHTML = html;
+        }
+
+        function seatButton(code, occupied) {
+            if (occupied.includes(code)) {
+                return `<button type="button" disabled class="h-8 rounded-lg bg-slate-200 text-slate-400 text-[10px] font-bold cursor-not-allowed">${code}</button>`;
+            }
+            const active = appState.cart.seats.includes(code);
+            const cls = active
+                ? "bg-terracotta-500 text-white border-terracotta-600 shadow-sm"
+                : "bg-white text-navy-900 border-slate-300 hover:border-terracotta-500";
+            return `<button type="button" onclick="toggleCartSeat('${code}')" class="seat-btn h-8 rounded-lg border-2 text-[10px] font-extrabold ${cls}">${code}</button>`;
+        }
+
+        function toggleCartSeat(code) {
+            const idx = appState.cart.seats.indexOf(code);
+            if (idx > -1) {
+                appState.cart.seats.splice(idx, 1);
+            } else {
+                if (appState.cart.seats.length >= 4) {
+                    showToast("Máximo 4 asientos por reserva.", "warning");
+                    return;
+                }
+                appState.cart.seats.push(code);
+            }
+
+            const sched = appState.cart.schedule;
+            renderBusSeatMap(sched, BRAND_STYLES[sched.brand].layout);
+            updateCartUI();
+        }
+
+        function calculateCartTotals() {
+            const sched = appState.cart.schedule;
+            if (!sched || appState.cart.seats.length === 0) return { subtotal: 0, discount: 0, total: 0 };
+            const unit = appState.tripType === 'round' ? Math.round(sched.price * 0.9) : sched.price;
+            const subtotal = unit * appState.cart.seats.length;
+            const discount = appState.cart.promoApplied ? Math.round(subtotal * 0.10) : 0;
+            return { subtotal, discount, total: subtotal - discount };
+        }
+
+        function updateCartUI() {
+            const emptyState = document.getElementById('cart-empty-state');
+            const filledState = document.getElementById('cart-filled-state');
+            const statusPill = document.getElementById('cart-status-pill');
+            const navBadge = document.getElementById('nav-cart-badge');
+            const peCartInd = document.getElementById('pe-cart-indicator');
+            const peCartText = document.getElementById('pe-cart-text');
+
+            const count = appState.cart.seats.length;
+            if (!appState.cart.schedule || count === 0) {
+                emptyState.classList.remove('hidden');
+                filledState.classList.add('hidden');
+                statusPill.textContent = "Vacío";
+                statusPill.className = "px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-bold";
+                navBadge.classList.add('hidden');
+                peCartInd.classList.add('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            filledState.classList.remove('hidden');
+            statusPill.textContent = `${count} asiento(s)`;
+            statusPill.className = "px-2.5 py-0.5 rounded-full bg-terracotta-500 text-white text-[11px] font-extrabold";
+
+            navBadge.textContent = count;
+            navBadge.classList.remove('hidden');
+            peCartInd.classList.remove('hidden');
+            peCartText.textContent = `${count} asiento(s) en carrito`;
+
+            const sched = appState.cart.schedule;
+            const totals = calculateCartTotals();
+
+            document.getElementById('cart-brand-badge').textContent = sched.brand;
+            document.getElementById('cart-date-label').textContent = formatReadableDate(appState.departureDate);
+            document.getElementById('cart-route-label').textContent = `${appState.origin.split(' - ')[0]} → ${appState.destination.split(' - ')[0]}`;
+            document.getElementById('cart-time-label').textContent = `Salida: ${sched.departureTime} hrs • Llegada: ${sched.arrivalTime} hrs`;
+            document.getElementById('cart-seats-list').textContent = appState.cart.seats.sort().join(', ');
+
+            document.getElementById('cart-subtotal').textContent = `$${totals.subtotal.toLocaleString('es-MX')} MXN`;
+
+            const discountRow = document.getElementById('cart-discount-row');
+            const promoMsg = document.getElementById('promo-applied-msg');
+            if (appState.cart.promoApplied) {
+                discountRow.classList.remove('hidden');
+                promoMsg.classList.remove('hidden');
+                document.getElementById('cart-discount-amount').textContent = `-$${totals.discount.toLocaleString('es-MX')} MXN`;
+            } else {
+                discountRow.classList.add('hidden');
+                promoMsg.classList.add('hidden');
+            }
+
+            document.getElementById('cart-total-price').textContent = `$${totals.total.toLocaleString('es-MX')} MXN`;
+        }
+
+        function applyPromoCode() {
+            const code = document.getElementById('promo-code-input').value.trim().toUpperCase();
+            if (code === 'VIA10') {
+                appState.cart.promoApplied = true;
+                updateCartUI();
+                showToast("¡Cupón VIA10 aplicado! 10% de descuento en tu boleto.", "success");
+            } else {
+                showToast("Código no válido. Usa VIA10 para 10% de descuento.", "warning");
+            }
+        }
+
+        function finalizeCartPurchase() {
+            const sched = appState.cart.schedule;
+            if (!sched || appState.cart.seats.length === 0) return;
+
+            const passenger = document.getElementById('passenger-name-input').value.trim() || "Alejandro Mendoza";
+            const totals = calculateCartTotals();
+            const folio = `VMX-${Math.floor(1000 + Math.random() * 9000)}`;
+
+            const newTicket = {
+                folio,
+                brand: sched.brand,
+                origin: appState.origin,
+                destination: appState.destination,
+                date: appState.departureDate,
+                departureTime: sched.departureTime,
+                seats: [...appState.cart.seats].sort(),
+                passenger,
+                totalPaid: totals.total
+            };
+
+            // Marcar asientos como ocupados
+            sched.occupiedSeats.push(...appState.cart.seats);
+
+            // Guardar boleto y vaciar carrito
+            appState.tickets.unshift(newTicket);
+            appState.cart.schedule = null;
+            appState.cart.seats = [];
+            appState.cart.promoApplied = false;
+            document.getElementById('promo-code-input').value = '';
+
+            if (appState.abandonmentTimer) clearTimeout(appState.abandonmentTimer);
+            updatePeTelemetryBar("Conversión Completada con Éxito", "emerald");
+            document.getElementById('nav-tickets-count').textContent = appState.tickets.length;
+
+            closeInlineSeatSelector();
+            updateCartUI();
+            renderSchedules();
+            renderMyTickets();
+            showQrTicketModal(newTicket);
+            showToast(`¡Compra finalizada! Folio ${folio} emitido.`, "success");
+        }
+
+        // 7. RENDERIZADO DE MIS BOLETOS Y MODAL QR
+        function renderMyTickets() {
+            const container = document.getElementById('my-tickets-container');
+            container.innerHTML = appState.tickets.map(t => `
+                <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+                            <span class="px-3 py-1 rounded-lg text-xs font-extrabold ${BRAND_STYLES[t.brand].badge}">${t.brand}</span>
+                            <span class="text-xs font-bold text-slate-500">Folio: <strong class="text-navy-900">${t.folio}</strong></span>
+                        </div>
+                        <p class="text-base font-extrabold text-navy-900">${t.origin} → ${t.destination}</p>
+                        <div class="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-100 mt-4 text-xs">
+                            <div><span class="text-slate-400 block">Fecha</span><strong>${formatReadableDate(t.date)}</strong></div>
+                            <div><span class="text-slate-400 block">Salida</span><strong class="text-terracotta-600">${t.departureTime} hrs</strong></div>
+                            <div><span class="text-slate-400 block">Asientos</span><strong>${t.seats.join(', ')}</strong></div>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <span class="text-xs text-slate-500">Pasajero: <strong class="text-navy-900">${t.passenger}</strong></span>
+                        <button onclick='showQrTicketModal(${JSON.stringify(t)})' class="px-4 py-2 rounded-xl bg-navy-900 hover:bg-terracotta-500 text-white text-xs font-extrabold transition-colors">
+                            <i class="fa-solid fa-qrcode mr-1"></i> Ver QR
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showQrTicketModal(ticket) {
+            document.getElementById('qr-modal-content').innerHTML = `
+                <div class="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50">
+                    <div class="p-4 bg-white border-b border-dashed border-slate-300 ticket-divider">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="px-2.5 py-0.5 rounded text-xs font-extrabold ${BRAND_STYLES[ticket.brand].badge}">${ticket.brand}</span>
+                            <span class="text-xs font-extrabold text-navy-900">${ticket.folio}</span>
+                        </div>
+                        <p class="text-sm font-extrabold text-navy-900">${ticket.origin}</p>
+                        <p class="text-xs text-slate-400 my-0.5">hacia</p>
+                        <p class="text-sm font-extrabold text-navy-900">${ticket.destination}</p>
+                    </div>
+                    <div class="p-4 bg-white grid grid-cols-3 text-center text-xs border-b border-slate-200">
+                        <div><span class="text-slate-400 block">Fecha</span><strong>${formatReadableDate(ticket.date)}</strong></div>
+                        <div><span class="text-slate-400 block">Hora</span><strong class="text-terracotta-600">${ticket.departureTime}</strong></div>
+                        <div><span class="text-slate-400 block">Asientos</span><strong>${ticket.seats.join(', ')}</strong></div>
+                    </div>
+                    <div class="p-5 flex flex-col items-center">
+                        <div class="p-3 bg-white rounded-2xl border border-slate-200 mb-2">
+                            <svg width="110" height="110" viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="110" height="110" fill="#fff"/>
+                                <g fill="#0B1F3A">
+                                    <rect x="8" y="8" width="28" height="28" rx="4"/><rect x="13" y="13" width="18" height="18" fill="#fff"/><rect x="18" y="18" width="8" height="8"/>
+                                    <rect x="74" y="8" width="28" height="28" rx="4"/><rect x="79" y="13" width="18" height="18" fill="#fff"/><rect x="84" y="18" width="8" height="8"/>
+                                    <rect x="8" y="74" width="28" height="28" rx="4"/><rect x="13" y="79" width="18" height="18" fill="#fff"/><rect x="18" y="84" width="8" height="8"/>
+                                    <rect x="46" y="12" width="8" height="16"/><rect x="46" y="46" width="18" height="18" fill="#E85D04"/>
+                                    <rect x="74" y="46" width="14" height="8"/><rect x="46" y="74" width="10" height="18"/><rect x="74" y="74" width="24" height="12"/>
+                                </g>
+                            </svg>
+                        </div>
+                        <span class="text-xs font-bold text-navy-900">${ticket.passenger}</span>
+                        <span class="text-[11px] text-emerald-600 font-bold">Total pagado: $${ticket.totalPaid.toLocaleString('es-MX')} MXN</span>
+                    </div>
+                </div>
+            `;
+            document.getElementById('qr-ticket-modal').classList.remove('hidden');
+        }
+
+        function closeQrModal() {
+            document.getElementById('qr-ticket-modal').classList.add('hidden');
+            switchView('boletos');
+        }
+
+        // 8. AGENTE VIRTUAL DE GENESYS CLOUD CX (CHAT INTERACTIVO Y RECUPERACIÓN)
+        let isChatOpen = false;
+
+        function toggleChatWidget(force) {
+            const win = document.getElementById('cx-chat-window');
+            const badge = document.getElementById('chat-unread-badge');
+            isChatOpen = typeof force === 'boolean' ? force : !isChatOpen;
+            if (isChatOpen) {
+                win.classList.remove('hidden');
+                badge.classList.add('hidden');
+            } else {
+                win.classList.add('hidden');
+            }
+        }
+
+        function initDefaultChat() {
+            const box = document.getElementById('cx-chat-messages');
+            box.innerHTML = '';
+            appendBotMessage("¡Bienvenido a <strong>Grupo VíaMéxico</strong>! 👋 Soy tu Agente Virtual de Genesys Cloud CX. Puedo ayudarte a elegir tu línea ideal, revisar políticas de equipaje o asistirte con tu compra.");
+            setQuickReplies([
+                { label: "🚌 Comparar VíaPlatino vs VíaPrimera", action: "info_lineas" },
+                { label: "🧳 Política de equipaje", action: "info_equipaje" },
+                { label: "🎧 Hablar con un ejecutivo", action: "escalate_human" }
+            ]);
+        }
+
+        function setQuickReplies(items) {
+            const container = document.getElementById('cx-quick-replies');
+            container.innerHTML = items.map(item => `
+                <button type="button" onclick="handleCxAction('${item.action}')" class="text-[11px] font-bold bg-slate-100 hover:bg-terracotta-500 hover:text-white text-navy-900 px-3 py-1.5 rounded-full border border-slate-200 transition-colors">
+                    ${item.label}
+                </button>
+            `).join('');
+        }
+
+        function appendBotMessage(html) {
+            const box = document.getElementById('cx-chat-messages');
+            const div = document.createElement('div');
+            div.className = "flex items-start gap-2.5";
+            div.innerHTML = `
+                <div class="w-7 h-7 rounded-full bg-navy-900 text-gold-400 flex items-center justify-center shrink-0 text-xs mt-0.5">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-none p-3 text-slate-700 shadow-sm max-w-[84%] leading-relaxed">
+                    ${html}
+                </div>
+            `;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function appendUserMessage(text) {
+            const box = document.getElementById('cx-chat-messages');
+            const div = document.createElement('div');
+            div.className = "flex justify-end";
+            div.innerHTML = `
+                <div class="bg-terracotta-500 text-white rounded-2xl rounded-tr-none p-3 shadow-sm max-w-[80%] font-medium leading-relaxed">
+                    ${text}
+                </div>
+            `;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function handleCxAction(action) {
+            if (action === 'recover_discount') {
+                appendUserMessage("Aplicar cupón VIA10 y pagar");
+                appState.cart.promoApplied = true;
+                document.getElementById('promo-code-input').value = 'VIA10';
+                updateCartUI();
+
+                setTimeout(() => {
+                    const totals = calculateCartTotals();
+                    appendBotMessage(`✅ ¡Listo! Apliqué el cupón <strong>VIA10 (10% de descuento)</strong> a tu carrito. Tu nuevo total es de <strong>$${totals.total.toLocaleString('es-MX')} MXN</strong>.<br><br>Te llevo directo al resumen de pago para que asegures tus asientos.`);
+                    switchView('compra');
+                    toggleChatWidget(false);
+                    showToast("Cupón VIA10 aplicado automáticamente por Genesys CX", "success");
+                }, 400);
+            } else if (action === 'recover_resume') {
+                appendUserMessage("Retomar compra ahora");
+                switchView('compra');
+                toggleChatWidget(false);
+            } else if (action === 'info_equipaje') {
+                appendUserMessage("Dudas sobre equipaje");
+                setTimeout(() => {
+                    appendBotMessage("🧳 Puedes documentar <strong>2 maletas de hasta 25 kg c/u</strong> sin costo en cajuela, más 1 equipaje de mano en cabina. En <em>AeroVía Express</em> aceptamos equipo deportivo y mascotas en transportadora.");
+                }, 350);
+            } else if (action === 'info_lineas') {
+                appendUserMessage("Comparar VíaPlatino vs VíaPrimera");
+                setTimeout(() => {
+                    appendBotMessage("✨ <strong>VíaPlatino:</strong> Autobús Doble Piso 2x1 con asiento cama 160°, pantalla HD individual y Wi-Fi Starlink.<br>🚌 <strong>VíaPrimera:</strong> Directo Primera Clase 2x2 con butacas ergonómicas y enchufes 110V.");
+                }, 350);
+            } else if (action === 'escalate_human') {
+                appendUserMessage("Hablar con un ejecutivo");
+                setTimeout(() => {
+                    document.getElementById('chat-agent-status').textContent = "● Conectado con Ejecutivo CX (CDMX)";
+                    const hasCart = appState.cart.schedule && appState.cart.seats.length > 0;
+                    const contextNote = hasCart
+                        ? `Ya tengo en mi pantalla tu carrito pendiente para <strong>${appState.origin.split(' - ')[0]} → ${appState.destination.split(' - ')[0]}</strong> (Asiento ${appState.cart.seats.join(', ')}).`
+                        : "Estoy listo para ayudarte con tu itinerario.";
+                    appendBotMessage(`🎧 Transfiriendo historial de Predictive Engagement a un especialista humano...<br><br><em>"¡Hola! Soy Sofía del Centro de Atención VíaMéxico. ${contextNote} ¿En qué te apoyo para completar tu viaje?"</em>`);
+                }, 500);
+            }
+        }
+
+        function handleChatSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('cx-chat-input');
+            const txt = input.value.trim();
+            if (!txt) return;
+            appendUserMessage(txt);
+            input.value = '';
+
+            const lower = txt.toLowerCase();
+            setTimeout(() => {
+                if (lower.includes('descuento') || lower.includes('cupon') || lower.includes('via10') || lower.includes('pagar')) {
+                    handleCxAction('recover_discount');
+                } else if (lower.includes('equipaje') || lower.includes('maleta')) {
+                    handleCxAction('info_equipaje');
+                } else if (lower.includes('agente') || lower.includes('ejecutivo') || lower.includes('humano')) {
+                    handleCxAction('escalate_human');
+                } else {
+                    appendBotMessage("Con gusto te ayudo. Si deseas retomar tu compra con descuento o hablar con un especialista, usa los botones rápidos de abajo.");
+                }
+            }, 400);
+        }
+
+        // 9. UTILIDADES
+        function toggleMobileMenu() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        }
+
+        function formatReadableDate(dStr) {
+            if (!dStr) return "20 Nov 2026";
+            const [y, m, d] = dStr.split('-');
+            const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+            return `${d} ${months[parseInt(m, 10) - 1]} ${y}`;
+        }
+
+        function showToast(msg, type = "info") {
+            const box = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            const styles = {
+                info: "bg-navy-900 text-white border-navy-800",
+                success: "bg-emerald-600 text-white border-emerald-500",
+                warning: "bg-amber-500 text-navy-950 border-amber-400"
+            };
+            el.className = `pointer-events-auto px-4 py-3 rounded-2xl shadow-xl border text-xs font-extrabold transition-all ${styles[type]}`;
+            el.textContent = msg;
+            box.appendChild(el);
+            setTimeout(() => {
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 300);
+            }, 3400);
+        }
+    </script>
+</body>
+</html>
