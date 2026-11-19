@@ -1,0 +1,1826 @@
+<!DOCTYPE html>
+<html lang="es-MX">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ClickBus | Powered by Grupo Flecha Amarilla — Boletos de Autobús y CX</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Plus Jakarta Sans & Inter -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Plus Jakarta Sans', 'sans-serif'],
+                    },
+                    colors: {
+                        faBlue: {
+                            800: '#003876',
+                            900: '#00244D',
+                            950: '#00152E',
+                        },
+                        faYellow: {
+                            400: '#FFCC00',
+                            500: '#F2B705',
+                            600: '#D99B00',
+                        },
+                        clickRed: {
+                            500: '#E30613',
+                            600: '#B8000B',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        html { scroll-behavior: smooth; }
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, h4, .font-display { font-family: 'Plus Jakarta Sans', sans-serif; }
+
+        .hero-flecha {
+            background: radial-gradient(circle at 85% 20%, rgba(255, 204, 0, 0.16) 0%, transparent 45%),
+                        linear-gradient(135deg, #00152E 0%, #00244D 58%, #003876 100%);
+        }
+
+        .seat-btn { transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1); }
+        .seat-btn:not(:disabled):hover { transform: translateY(-2px); }
+
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); opacity: 0.75; }
+            70% { transform: scale(1.25); opacity: 0; }
+            100% { transform: scale(1.25); opacity: 0; }
+        }
+        .genesys-pulse::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            border-radius: 9999px;
+            background-color: #FFCC00;
+            z-index: -1;
+            animation: pulse-ring 2s infinite;
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(24px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+        .animate-slide-in { animation: slideInRight 0.35s ease-out forwards; }
+
+        .ticket-divider { position: relative; }
+        .ticket-divider::before, .ticket-divider::after {
+            content: '';
+            position: absolute;
+            top: 50%;
+            width: 22px;
+            height: 22px;
+            background-color: #f8fafc;
+            border-radius: 50%;
+            transform: translateY(-50%);
+        }
+        .ticket-divider::before { left: -11px; }
+        .ticket-divider::after { right: -11px; }
+    </style>
+
+    <!-- Genesys Cloud Bootstrap Configuration -->
+    <script type="text/javascript" charset="utf-8">
+      (function (g, e, n, es, ys) {
+        g['_genesysJs'] = e;
+        g[e] = g[e] || function () {
+          (g[e].q = g[e].q || []).push(arguments)
+        };
+        g[e].t = 1 * new Date();
+        g[e].c = es;
+        ys = document.createElement('script'); ys.async = 1; ys.src = n; ys.charset = 'utf-8'; document.head.appendChild(ys);
+      })(window, 'Genesys', 'https://apps.usw2.pure.cloud/genesys-bootstrap/genesys.min.js', {
+        environment: 'prod-usw2',
+        deploymentId: 'ec913086-9e9d-4e2b-8575-aecad3706705'
+      });
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-800 antialiased selection:bg-faYellow-400 selection:text-faBlue-950">
+
+    <!-- ==================== NOTIFICACIONES TOAST ==================== -->
+    <div id="toast-container" class="fixed top-24 right-4 z-50 flex flex-col gap-2 max-w-sm w-full pointer-events-none"></div>
+
+    <!-- ==================== BARRA DE TELEMETRÍA GENESYS PREDICTIVE ENGAGEMENT ==================== -->
+    <div class="bg-faBlue-950 text-slate-300 border-b border-white/10 text-xs">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-2 flex flex-wrap items-center justify-between gap-2">
+            <div class="flex items-center gap-2.5">
+                <span class="relative flex h-2.5 w-2.5">
+                    <span id="pe-ping" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                    <span id="pe-dot" class="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+                </span>
+                <span class="font-bold text-white tracking-wide">Genesys Predictive Engagement:</span>
+                <span id="pe-journey-status" class="px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-300 font-semibold">
+                    Navegando ClickBus • Flecha Amarilla
+                </span>
+                <span id="pe-cart-indicator" class="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-faYellow-400/20 text-faYellow-400 border border-faYellow-400/30 font-semibold">
+                    <i class="fa-solid fa-cart-shopping text-[10px]"></i>
+                    <span id="pe-cart-text">0 asientos en carrito</span>
+                </span>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <button onclick="simulateQuickAbandonment()" class="px-3 py-1 rounded-lg bg-faYellow-400 hover:bg-faYellow-500 text-faBlue-950 font-extrabold transition-colors flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-bolt text-faBlue-900"></i>
+                    <span>Simular Abandono Rápido</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== HEADER / NAVEGACIÓN PRINCIPAL CLICKBUS ==================== -->
+    <header class="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200 shadow-sm">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-20">
+                <!-- Logotipo ClickBus Powered by Grupo Flecha Amarilla -->
+                <button onclick="switchView('inicio')" class="flex items-center gap-3 text-left group">
+                    <div class="w-11 h-11 rounded-xl bg-faBlue-900 flex items-center justify-center text-white shadow-md group-hover:bg-faBlue-800 transition-colors relative overflow-hidden">
+                        <i class="fa-solid fa-location-arrow text-xl text-faYellow-400 transform rotate-45"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-2xl font-extrabold tracking-tight text-faBlue-900 leading-none font-display">
+                                Click<span class="text-clickRed-500">Bus</span>
+                            </span>
+                            <span class="px-2 py-0.5 rounded bg-faYellow-400 text-faBlue-950 text-[10px] font-extrabold uppercase tracking-wider">MX</span>
+                        </div>
+                        <span class="text-[11px] font-bold text-slate-500 tracking-wide block mt-0.5">
+                            Powered by <strong class="text-faBlue-800">Grupo Flecha Amarilla</strong>
+                        </span>
+                    </div>
+                </button>
+
+                <!-- Pestañas de Navegación Desktop -->
+                <nav class="hidden md:flex items-center gap-1 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+                    <button onclick="switchView('inicio')" data-nav="inicio" class="nav-tab px-4 py-2 rounded-xl text-sm font-bold bg-white text-faBlue-900 shadow-sm transition-all">
+                        Inicio
+                    </button>
+                    <button onclick="switchView('flota')" data-nav="flota" class="nav-tab px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:text-faBlue-900 transition-all">
+                        Unidades Primera Plus y Flota
+                    </button>
+                    <button onclick="switchView('compra')" data-nav="compra" class="nav-tab px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:text-faBlue-900 transition-all flex items-center gap-2">
+                        <span>Compra de Boletos</span>
+                        <span id="nav-cart-badge" class="hidden bg-clickRed-500 text-white text-[11px] font-extrabold px-2 py-0.5 rounded-full">0</span>
+                    </button>
+                    <button onclick="switchView('boletos')" data-nav="boletos" class="nav-tab px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:text-faBlue-900 transition-all flex items-center gap-1.5">
+                        <span>Mis Boletos</span>
+                        <span id="nav-tickets-count" class="bg-faBlue-900/10 text-faBlue-900 text-[11px] font-extrabold px-2 py-0.5 rounded-full">1</span>
+                    </button>
+                </nav>
+
+                <!-- CTA Directo -->
+                <div class="hidden lg:flex items-center gap-3">
+                    <button onclick="switchView('compra')" class="px-5 py-2.5 rounded-xl bg-faBlue-900 hover:bg-faBlue-800 text-white text-xs font-extrabold tracking-wide transition-all shadow-sm flex items-center gap-2">
+                        <i class="fa-solid fa-ticket text-faYellow-400"></i>
+                        <span>Buscar Corridas</span>
+                    </button>
+                </div>
+
+                <!-- Botón Menú Móvil -->
+                <button onclick="toggleMobileMenu()" class="md:hidden p-2.5 rounded-xl text-slate-700 hover:bg-slate-100">
+                    <i class="fa-solid fa-bars text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Menú Móvil -->
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-slate-200 px-4 py-4 space-y-2 shadow-lg">
+            <button onclick="switchView('inicio'); toggleMobileMenu()" class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold text-faBlue-900 hover:bg-slate-50">Inicio (ClickBus • Flecha Amarilla)</button>
+            <button onclick="switchView('flota'); toggleMobileMenu()" class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold text-faBlue-900 hover:bg-slate-50">Unidades Primera Plus y Flota</button>
+            <button onclick="switchView('compra'); toggleMobileMenu()" class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold text-clickRed-600 hover:bg-red-50">Compra de Boletos</button>
+            <button onclick="switchView('boletos'); toggleMobileMenu()" class="w-full text-left px-4 py-2.5 rounded-xl text-sm font-bold text-faBlue-900 hover:bg-slate-50">Mis Boletos</button>
+        </div>
+    </header>
+
+    <!-- ========================================================================= -->
+    <!-- VISTA 1: INICIO (LANDING CLICKBUS POWERED BY FLECHA AMARILLA)             -->
+    <!-- ========================================================================= -->
+    <main id="view-inicio" class="view-section">
+        <!-- Hero Corporativo -->
+        <section class="hero-flecha text-white pt-14 pb-20 lg:pt-20 lg:pb-24 relative overflow-hidden">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
+                    <div class="lg:col-span-7">
+                        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-white/10 border border-white/15 text-xs font-semibold text-faYellow-400 mb-6">
+                            <i class="fa-solid fa-award"></i>
+                            <span>Plataforma Oficial ClickBus • Powered by Grupo Flecha Amarilla</span>
+                        </div>
+                        <h1 class="text-4xl sm:text-5xl lg:text-[52px] font-extrabold tracking-tight leading-[1.12] mb-6 font-display">
+                            Viaja con el respaldo de <span class="text-faYellow-400">Primera Plus</span> y <span class="text-white underline decoration-clickRed-500 decoration-4 underline-offset-4">Flecha Amarilla</span>
+                        </h1>
+                        <p class="text-lg text-slate-200 leading-relaxed mb-8 max-w-2xl">
+                            Compra tus boletos de autobús en <strong class="text-white">ClickBus</strong> con acceso directo a las corridas, salas de espera VIP y unidades de última generación del <strong class="text-faYellow-400">Grupo Flecha Amarilla</strong> en el Bajío, Occidente y Centro de México.
+                        </p>
+
+                        <div class="flex flex-wrap items-center gap-4">
+                            <button onclick="switchView('compra')" class="px-7 py-4 rounded-2xl bg-faYellow-400 hover:bg-faYellow-500 text-faBlue-950 font-extrabold text-sm shadow-lg shadow-faYellow-400/25 transition-all flex items-center gap-2.5">
+                                <i class="fa-solid fa-ticket"></i>
+                                <span>Comprar Boletos en ClickBus</span>
+                            </button>
+                            <button onclick="switchView('flota')" class="px-7 py-4 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/20 text-white font-bold text-sm transition-all flex items-center gap-2.5">
+                                <i class="fa-solid fa-bus"></i>
+                                <span>Conocer Flota Primera Plus</span>
+                            </button>
+                        </div>
+
+                        <!-- Indicadores Clave del Grupo Flecha Amarilla -->
+                        <div class="grid grid-cols-3 gap-6 pt-10 mt-10 border-t border-white/10">
+                            <div>
+                                <span class="text-2xl sm:text-3xl font-extrabold text-white block font-display">+90 Años</span>
+                                <span class="text-xs text-slate-300">De historia conectando México</span>
+                            </div>
+                            <div>
+                                <span class="text-2xl sm:text-3xl font-extrabold text-faYellow-400 block font-display">+3,200</span>
+                                <span class="text-xs text-slate-300">Autobuses en operación diaria</span>
+                            </div>
+                            <div>
+                                <span class="text-2xl sm:text-3xl font-extrabold text-emerald-400 block font-display">19 Estados</span>
+                                <span class="text-xs text-slate-300">Líder en Bajío y Occidente</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Ilustración SVG Detallada de Unidad Primera Plus Doble Piso -->
+                    <div class="lg:col-span-5">
+                        <div class="bg-white/5 backdrop-blur-md border border-white/15 rounded-3xl p-6 shadow-2xl">
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="px-3 py-1 rounded-lg bg-faYellow-400 text-faBlue-950 text-xs font-extrabold uppercase tracking-wider">Primera Plus • Doble Piso</span>
+                                <span class="text-xs text-slate-200 font-semibold"><i class="fa-solid fa-satellite-dish text-emerald-400 mr-1"></i> Telemetría GFA 24/7</span>
+                            </div>
+
+                            <!-- SVG Autobús Primera Plus Doble Piso -->
+                            <svg viewBox="0 0 480 230" class="w-full h-auto drop-shadow-xl my-2" xmlns="http://www.w3.org/2000/svg">
+                                <!-- Carretera -->
+                                <rect x="10" y="198" width="460" height="6" rx="3" fill="#00152E"/>
+                                <line x1="30" y1="201" x2="450" y2="201" stroke="#FFCC00" stroke-width="2" stroke-dasharray="14 10"/>
+                                <!-- Carrocería Principal -->
+                                <path d="M45 42 C45 28, 60 22, 85 22 L410 22 C432 22, 445 35, 448 58 L455 155 C456 172, 445 180, 428 180 L48 180 C34 180, 28 170, 30 152 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="2"/>
+                                <!-- Franja Corporativa Azul Marino Flecha Amarilla -->
+                                <path d="M32 115 L452 115 L455 156 C455 170, 445 178, 430 178 L46 178 C34 178, 29 170, 30 155 Z" fill="#00244D"/>
+                                <!-- Acento Amarillo Flecha Amarilla y Rojo Primera Plus -->
+                                <path d="M32 108 L451 108 L452 115 L32 115 Z" fill="#FFCC00"/>
+                                <path d="M32 115 L452 115 L452 120 L32 120 Z" fill="#E30613"/>
+                                <!-- Ventanas Piso Superior -->
+                                <rect x="65" y="34" width="355" height="34" rx="8" fill="#0f172a"/>
+                                <line x1="135" y1="34" x2="135" y2="68" stroke="#334155" stroke-width="2"/>
+                                <line x1="205" y1="34" x2="205" y2="68" stroke="#334155" stroke-width="2"/>
+                                <line x1="275" y1="34" x2="275" y2="68" stroke="#334155" stroke-width="2"/>
+                                <line x1="345" y1="34" x2="345" y2="68" stroke="#334155" stroke-width="2"/>
+                                <!-- Parabrisas Panorámico -->
+                                <path d="M415 34 L434 34 C441 34, 445 42, 447 68 L415 68 Z" fill="#1e293b"/>
+                                <!-- Ventanas Piso Inferior -->
+                                <rect x="115" y="76" width="245" height="26" rx="5" fill="#0f172a"/>
+                                <line x1="175" y1="76" x2="175" y2="102" stroke="#334155" stroke-width="2"/>
+                                <line x1="235" y1="76" x2="235" y2="102" stroke="#334155" stroke-width="2"/>
+                                <line x1="295" y1="76" x2="295" y2="102" stroke="#334155" stroke-width="2"/>
+                                <!-- Parabrisas Operador -->
+                                <path d="M398 76 L446 76 L450 104 L398 104 Z" fill="#1e293b"/>
+                                <!-- Texto en Costado -->
+                                <text x="148" y="148" fill="#ffffff" font-family="Plus Jakarta Sans, sans-serif" font-weight="800" font-size="18" letter-spacing="1">PRIMERA PLUS</text>
+                                <text x="150" y="162" fill="#FFCC00" font-family="Inter, sans-serif" font-weight="700" font-size="9" letter-spacing="1.8">GRUPO FLECHA AMARILLA</text>
+                                <!-- Faro LED -->
+                                <path d="M442 155 L454 155 L454 165 L440 165 Z" fill="#fef08a"/>
+                                <!-- Ruedas -->
+                                <circle cx="105" cy="180" r="22" fill="#0f172a" stroke="#475569" stroke-width="3"/>
+                                <circle cx="105" cy="180" r="10" fill="#cbd5e1"/>
+                                <circle cx="155" cy="180" r="22" fill="#0f172a" stroke="#475569" stroke-width="3"/>
+                                <circle cx="155" cy="180" r="10" fill="#cbd5e1"/>
+                                <circle cx="385" cy="180" r="22" fill="#0f172a" stroke="#475569" stroke-width="3"/>
+                                <circle cx="385" cy="180" r="10" fill="#cbd5e1"/>
+                            </svg>
+
+                            <div class="grid grid-cols-3 gap-2 text-center mt-3 pt-3 border-t border-white/10 text-xs">
+                                <div class="bg-white/5 rounded-xl p-2">
+                                    <i class="fa-solid fa-tv text-faYellow-400 mb-1 block"></i>
+                                    <span class="text-slate-200 font-semibold">Pantallas Individuales</span>
+                                </div>
+                                <div class="bg-white/5 rounded-xl p-2">
+                                    <i class="fa-solid fa-couch text-faYellow-400 mb-1 block"></i>
+                                    <span class="text-slate-200 font-semibold">Descansapiernas</span>
+                                </div>
+                                <div class="bg-white/5 rounded-xl p-2">
+                                    <i class="fa-solid fa-mug-hot text-faYellow-400 mb-1 block"></i>
+                                    <span class="text-slate-200 font-semibold">Lunch al Abordar</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Comparador Interactivo de Cabinas Primera Plus -->
+        <section class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-10">
+                <div>
+                    <span class="text-xs font-extrabold uppercase tracking-widest text-clickRed-500">Experiencia a Bordo Primera Plus</span>
+                    <h2 class="text-3xl font-extrabold text-faBlue-900 mt-1 font-display">Conoce el Interior de Nuestras Unidades</h2>
+                    <p class="text-slate-600 text-sm mt-1">Explora la distribución de asientos de Primera Plus Doble Piso y Primera Plus un solo nivel.</p>
+                </div>
+
+                <!-- Selector de Cabina -->
+                <div class="inline-flex bg-slate-200/80 p-1.5 rounded-2xl">
+                    <button id="btn-cabin-dd" onclick="selectCabinPreview('dd')" class="px-4 py-2 rounded-xl text-xs font-extrabold bg-faBlue-900 text-white shadow-sm transition-all">
+                        Primera Plus Doble Piso (Planta Baja / Alta)
+                    </button>
+                    <button id="btn-cabin-1p" onclick="selectCabinPreview('1p')" class="px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-faBlue-900 transition-all">
+                        Primera Plus Un Piso (Irizar i8 / Volvo 9800)
+                    </button>
+                </div>
+            </div>
+
+            <!-- Panel Visual Comparador de Cabina -->
+            <div id="cabin-preview-card" class="bg-white rounded-3xl border border-slate-200 shadow-lg p-6 sm:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+                <!-- Renderizado dinámico por JS -->
+            </div>
+        </section>
+
+        <!-- Nuestras Líneas de Grupo Flecha Amarilla en ClickBus -->
+        <section class="py-16 bg-slate-100 border-y border-slate-200">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="text-center max-w-3xl mx-auto mb-12">
+                    <span class="text-xs font-extrabold uppercase tracking-widest text-faBlue-900 bg-faYellow-400 px-3.5 py-1.5 rounded-full">Grupo Flecha Amarilla • ClickBus</span>
+                    <h2 class="text-3xl font-extrabold text-faBlue-900 mt-3 font-display">Nuestras Marcas y Servicios de Autotransporte</h2>
+                    <p class="text-slate-600 text-sm mt-2">Elige la línea que mejor se adapte a tu ruta y presupuesto dentro del ecosistema ClickBus.</p>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <!-- Primera Plus -->
+                    <div class="bg-white rounded-2xl p-6 border-2 border-faBlue-900/15 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between relative">
+                        <span class="absolute -top-3 right-4 px-2.5 py-0.5 rounded-full bg-clickRed-500 text-white text-[10px] font-extrabold uppercase">Servicio Estrella</span>
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="px-3 py-1 rounded-lg bg-faBlue-900 text-faYellow-400 text-xs font-extrabold">PRIMERA CLASE</span>
+                                <i class="fa-solid fa-crown text-faYellow-500 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-extrabold text-faBlue-900 mb-1">Primera Plus</h3>
+                            <p class="text-xs text-slate-500 mb-4">Doble Piso y Un Piso • Salas VIP</p>
+                            <p class="text-sm text-slate-600 mb-5 leading-relaxed">
+                                Nuestro servicio insignia con asientos reclinables con descansapiernas, pantallas individuales, lunch de cortesía, Wi-Fi y sanitarios H/M.
+                            </p>
+                        </div>
+                        <button onclick="goToBookingWithBrand('Primera Plus')" class="w-full py-3 px-4 rounded-xl bg-faBlue-900 hover:bg-faBlue-800 text-white text-xs font-bold transition-colors flex items-center justify-center gap-2">
+                            <span>Ver Corridas Primera Plus</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Coordinados -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="px-3 py-1 rounded-lg bg-blue-100 text-faBlue-900 text-xs font-extrabold">INTERMEDIO DIRECTO</span>
+                                <i class="fa-solid fa-bus text-faBlue-800 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-extrabold text-faBlue-900 mb-1">Servicios Coordinados</h3>
+                            <p class="text-xs text-slate-500 mb-4">Conexión Bajío • Alta Frecuencia</p>
+                            <p class="text-sm text-slate-600 mb-5 leading-relaxed">
+                                Enlace directo y semi-directo entre León, Guanajuato, Irapuato, Celaya, Querétaro y Morelia con aire acondicionado y asientos reclinables.
+                            </p>
+                        </div>
+                        <button onclick="goToBookingWithBrand('Coordinados')" class="w-full py-3 px-4 rounded-xl bg-clickRed-500 hover:bg-clickRed-600 text-white text-xs font-bold transition-colors flex items-center justify-center gap-2">
+                            <span>Ver Corridas Coordinados</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Flecha Amarilla -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="px-3 py-1 rounded-lg bg-faYellow-400/30 text-faBlue-950 text-xs font-extrabold">REGIONAL</span>
+                                <i class="fa-solid fa-route text-faYellow-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-extrabold text-faBlue-900 mb-1">Autobuses Flecha Amarilla</h3>
+                            <p class="text-xs text-slate-500 mb-4">Cobertura Total • Salidas Continuas</p>
+                            <p class="text-sm text-slate-600 mb-5 leading-relaxed">
+                                La red regional más extensa del centro-occidente del país, conectando municipios, parques industriales y Pueblos Mágicos.
+                            </p>
+                        </div>
+                        <button onclick="goToBookingWithBrand('Flecha Amarilla')" class="w-full py-3 px-4 rounded-xl bg-faYellow-400 hover:bg-faYellow-500 text-faBlue-950 text-xs font-extrabold transition-colors flex items-center justify-center gap-2">
+                            <span>Ver Corridas Flecha Amarilla</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+
+                    <!-- Unebus / Conexión Aeropuerto -->
+                    <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm hover:shadow-xl transition-all flex flex-col justify-between">
+                        <div>
+                            <div class="flex items-center justify-between mb-4">
+                                <span class="px-3 py-1 rounded-lg bg-emerald-100 text-emerald-900 text-xs font-extrabold">AEROPUERTO BJX</span>
+                                <i class="fa-solid fa-plane-departure text-emerald-600 text-lg"></i>
+                            </div>
+                            <h3 class="text-xl font-extrabold text-faBlue-900 mb-1">Unebus • Aeropuerto</h3>
+                            <p class="text-xs text-slate-500 mb-4">Directo a Aeropuerto del Bajío (BJX)</p>
+                            <p class="text-sm text-slate-600 mb-5 leading-relaxed">
+                                Traslados ejecutivos sincronizados desde León, Guanajuato Capital, Silao e Irapuato directo a la terminal aérea del Bajío.
+                            </p>
+                        </div>
+                        <button onclick="goToBookingWithBrand('Unebus')" class="w-full py-3 px-4 rounded-xl bg-faBlue-900 hover:bg-faBlue-800 text-white text-xs font-bold transition-colors flex items-center justify-center gap-2">
+                            <span>Ver Corridas Unebus</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Beneficios ClickBus + Flecha Amarilla -->
+        <section class="py-16 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="bg-faBlue-900 rounded-3xl p-8 sm:p-12 text-white grid grid-cols-1 lg:grid-cols-12 gap-8 items-center shadow-xl">
+                <div class="lg:col-span-7 space-y-4">
+                    <span class="text-xs font-extrabold uppercase tracking-widest text-faYellow-400">Ecosistema Digital ClickBus • Flecha Amarilla</span>
+                    <h2 class="text-2xl sm:text-3xl font-extrabold font-display">Aborda directo con tu boleto digital y disfruta nuestras Salas de Espera VIP</h2>
+                    <p class="text-slate-200 text-sm leading-relaxed">
+                        Al adquirir tus boletos de <strong>Primera Plus</strong> a través de ClickBus obtienes acceso a salas exclusivas en centrales principales (León, Guadalajara, Querétaro, CDMX Norte, Morelia y San Luis Potosí) con café, Wi-Fi y abordaje preferente.
+                    </p>
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 text-xs">
+                        <div class="flex items-center gap-3 bg-white/5 p-3.5 rounded-2xl border border-white/10">
+                            <i class="fa-solid fa-couch text-xl text-faYellow-400"></i>
+                            <div>
+                                <strong class="block text-white">Salas de Espera Primera Plus</strong>
+                                <span class="text-slate-300">Climatizadas, con bebidas y área de trabajo</span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-3 bg-white/5 p-3.5 rounded-2xl border border-white/10">
+                            <i class="fa-solid fa-headset text-xl text-emerald-400"></i>
+                            <div>
+                                <strong class="block text-white">Asistencia Omnicanal Genesys CX</strong>
+                                <span class="text-slate-300">Soporte proactivo en tu reserva y cambios</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="lg:col-span-5 flex flex-col items-center lg:items-end justify-center">
+                    <div class="bg-white text-faBlue-900 rounded-2xl p-6 max-w-sm w-full shadow-lg">
+                        <div class="flex items-center justify-between mb-2">
+                            <h4 class="font-extrabold text-lg">Cotiza tu próximo viaje</h4>
+                            <span class="text-[10px] font-extrabold px-2 py-0.5 rounded bg-faYellow-400 text-faBlue-950">10% DTO REDONDO</span>
+                        </div>
+                        <p class="text-xs text-slate-600 mb-5">Consulta horarios en tiempo real de Primera Plus, Coordinados y Flecha Amarilla en ClickBus.</p>
+                        <button onclick="switchView('compra')" class="w-full py-3.5 px-5 rounded-xl bg-clickRed-500 hover:bg-clickRed-600 text-white font-extrabold text-sm transition-all shadow-md flex items-center justify-center gap-2">
+                            <span>Ir a Taquilla ClickBus</span>
+                            <i class="fa-solid fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- ========================================================================= -->
+    <!-- VISTA 2: UNIDADES PRIMERA PLUS Y FLOTA FLECHA AMARILLA                    -->
+    <!-- ========================================================================= -->
+    <main id="view-flota" class="view-section hidden py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="max-w-3xl mb-10">
+            <span class="text-xs font-extrabold uppercase tracking-widest text-clickRed-500">Flota Oficial Grupo Flecha Amarilla</span>
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-faBlue-900 mt-1 font-display">Unidades Primera Plus y Servicios</h1>
+            <p class="text-slate-600 text-sm sm:text-base mt-2">
+                Conoce la tecnología, seguridad y amenidades de las unidades que operan nuestras corridas en ClickBus, encabezadas por la flota insignia de <strong>Primera Plus</strong>.
+            </p>
+        </div>
+
+        <!-- Fichas Técnicas de Modelos Primera Plus -->
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-12">
+            <!-- Modelo 1: Primera Plus Doble Piso (Volvo 9800 DD / MAN Ayat) -->
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="bg-faBlue-900 text-white p-6 flex items-center justify-between">
+                    <div>
+                        <span class="px-2.5 py-1 rounded-md bg-faYellow-400 text-faBlue-950 text-xs font-extrabold">Primera Plus Doble Piso</span>
+                        <h3 class="text-2xl font-extrabold mt-2 font-display">Volvo 9800 DD • Primera Plus</h3>
+                        <p class="text-xs text-slate-300">Autobús de Dos Niveles • Salón Ejecutivo Planta Baja</p>
+                    </div>
+                    <i class="fa-solid fa-bus-simple text-4xl text-faYellow-400"></i>
+                </div>
+                <div class="p-6 space-y-5">
+                    <div class="grid grid-cols-3 gap-3 text-center">
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <span class="text-xs text-slate-400 block">Capacidad</span>
+                            <strong class="text-base font-extrabold text-faBlue-900">50 Asientos</strong>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <span class="text-xs text-slate-400 block">Niveles</span>
+                            <strong class="text-base font-extrabold text-faBlue-900">2 Pisos</strong>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <span class="text-xs text-slate-400 block">Confort</span>
+                            <strong class="text-base font-extrabold text-emerald-600">Descansapiernas</strong>
+                        </div>
+                    </div>
+                    <ul class="space-y-2.5 text-sm text-slate-600">
+                        <li class="flex items-center gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500"></i> Planta baja con 12 asientos exclusivos de fácil acceso y mesa de trabajo.</li>
+                        <li class="flex items-center gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500"></i> Pantallas individuales táctiles con películas, series y música a bordo.</li>
+                        <li class="flex items-center gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500"></i> Lunch de cortesía al abordar (sándwich/chapata, bebida y snack).</li>
+                        <li class="flex items-center gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500"></i> Sanitarios independientes para damas y caballeros, Wi-Fi y tomas 110V/USB.</li>
+                    </ul>
+                    <button onclick="goToBookingWithBrand('Primera Plus')" class="w-full py-3 rounded-xl bg-faBlue-900 hover:bg-faBlue-800 text-white text-xs font-extrabold transition-colors">
+                        Buscar Corridas en Primera Plus Doble Piso
+                    </button>
+                </div>
+            </div>
+
+            <!-- Modelo 2: Primera Plus Un Piso (Irizar i8 / Scania) -->
+            <div class="bg-white rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
+                <div class="bg-faBlue-800 text-white p-6 flex items-center justify-between">
+                    <div>
+                        <span class="px-2.5 py-1 rounded-md bg-clickRed-500 text-white text-xs font-extrabold">Primera Plus Clásico</span>
+                        <h3 class="text-2xl font-extrabold mt-2 font-display">Irizar i8 Integral • Primera Plus</h3>
+                        <p class="text-xs text-slate-300">Configuración Amplia de 36 a 40 Asientos</p>
+                    </div>
+                    <i class="fa-solid fa-bus text-4xl text-faYellow-400"></i>
+                </div>
+                <div class="p-6 space-y-5">
+                    <div class="grid grid-cols-3 gap-3 text-center">
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <span class="text-xs text-slate-400 block">Capacidad</span>
+                            <strong class="text-base font-extrabold text-faBlue-900">36 Asientos</strong>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <span class="text-xs text-slate-400 block">Espacio</span>
+                            <strong class="text-base font-extrabold text-faBlue-900">Extra Amplio</strong>
+                        </div>
+                        <div class="bg-slate-50 p-3 rounded-2xl border border-slate-100">
+                            <span class="text-xs text-slate-400 block">Sanitarios</span>
+                            <strong class="text-base font-extrabold text-emerald-600">H / M Doble</strong>
+                        </div>
+                    </div>
+                    <ul class="space-y-2.5 text-sm text-slate-600">
+                        <li class="flex items-center gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500"></i> Mayor distancia entre filas para máxima comodidad en viajes largos.</li>
+                        <li class="flex items-center gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500"></i> Cabeceras ergonómicas de piel sintética, descansapiernas y luz de lectura.</li>
+                        <li class="flex items-center gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500"></i> Sistema de frenado autónomo, alerta de cambio de carril y GPS 24/7.</li>
+                        <li class="flex items-center gap-2.5"><i class="fa-solid fa-circle-check text-emerald-500"></i> Aire acondicionado automatizado con renovación constante de aire.</li>
+                    </ul>
+                    <button onclick="goToBookingWithBrand('Primera Plus')" class="w-full py-3 rounded-xl bg-clickRed-500 hover:bg-clickRed-600 text-white text-xs font-extrabold transition-colors">
+                        Buscar Corridas en Primera Plus Irizar i8
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Comparativa de Servicios Grupo Flecha Amarilla -->
+        <div class="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 shadow-sm">
+            <h3 class="text-xl font-extrabold text-faBlue-900 mb-4 font-display">Diferencias entre Nuestros Servicios en ClickBus</h3>
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm">
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <span class="px-2.5 py-0.5 rounded bg-faBlue-900 text-faYellow-400 text-[11px] font-extrabold">Primera Plus</span>
+                    <h4 class="font-bold text-faBlue-900 mt-2 mb-1">Viaje Directo de Primera Clase</h4>
+                    <p class="text-xs text-slate-600 leading-relaxed">Corridas directas sin escalas intermedias, pantallas individuales, lunch al abordar, doble sanitario y acceso a Salas VIP.</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <span class="px-2.5 py-0.5 rounded bg-blue-100 text-faBlue-900 text-[11px] font-extrabold">Servicios Coordinados</span>
+                    <h4 class="font-bold text-faBlue-900 mt-2 mb-1">Conectividad Intermedia Rápida</h4>
+                    <p class="text-xs text-slate-600 leading-relaxed">Unidades climatizadas de 40 a 44 asientos con pantallas ambientales y sanitario, ideales para tramos cortos en el corredor del Bajío.</p>
+                </div>
+                <div class="p-4 rounded-2xl bg-slate-50 border border-slate-100">
+                    <span class="px-2.5 py-0.5 rounded bg-faYellow-400 text-faBlue-950 text-[11px] font-extrabold">Flecha Amarilla / Unebus</span>
+                    <h4 class="font-bold text-faBlue-900 mt-2 mb-1">Cobertura Regional y Aeropuerto</h4>
+                    <p class="text-xs text-slate-600 leading-relaxed">Frecuencia continua cada 15-30 minutos hacia destinos regionales y traslados directos al Aeropuerto Internacional de Guanajuato (BJX).</p>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ========================================================================= -->
+    <!-- VISTA 3: COMPRA DE BOLETOS CLICKBUS (BUSCADOR + ASIENTOS + CARRITO)       -->
+    <!-- ========================================================================= -->
+    <main id="view-compra" class="view-section hidden py-10 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <!-- Buscador de Corridas Estilo ClickBus -->
+        <div class="bg-faBlue-900 text-white rounded-3xl p-6 sm:p-8 shadow-xl mb-8">
+            <div class="flex flex-wrap items-center justify-between gap-4 mb-6">
+                <div>
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-faYellow-400">Taquilla Digital ClickBus • Powered by Flecha Amarilla</span>
+                    <h1 class="text-2xl sm:text-3xl font-extrabold font-display">Selecciona tu Origen, Destino y Corrida</h1>
+                </div>
+                <div class="flex items-center gap-2 bg-white/10 p-1 rounded-xl">
+                    <button type="button" id="btn-trip-oneway" onclick="setTripType('oneway')" class="px-4 py-2 rounded-lg text-xs font-extrabold bg-white text-faBlue-900 shadow-sm">Viaje Sencillo</button>
+                    <button type="button" id="btn-trip-round" onclick="setTripType('round')" class="px-4 py-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white">Viaje Redondo (-10%)</button>
+                </div>
+            </div>
+
+            <form onsubmit="handleSearch(event)" class="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+                <div class="md:col-span-4">
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1.5">Origen</label>
+                    <select id="origin-select" class="w-full px-4 py-3 bg-white text-faBlue-900 rounded-xl text-sm font-bold outline-none"></select>
+                </div>
+
+                <div class="md:col-span-1 flex justify-center">
+                    <button type="button" onclick="swapLocations()" class="w-11 h-11 rounded-xl bg-white/10 hover:bg-white/20 text-white flex items-center justify-center transition-colors" title="Intercambiar">
+                        <i class="fa-solid fa-right-left"></i>
+                    </button>
+                </div>
+
+                <div class="md:col-span-4">
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1.5">Destino</label>
+                    <select id="destination-select" class="w-full px-4 py-3 bg-white text-faBlue-900 rounded-xl text-sm font-bold outline-none"></select>
+                </div>
+
+                <div class="md:col-span-3">
+                    <label class="block text-[11px] font-bold uppercase tracking-wider text-slate-300 mb-1.5">Fecha de Salida</label>
+                    <input type="date" id="departure-date" required class="w-full px-4 py-3 bg-white text-faBlue-900 rounded-xl text-sm font-bold outline-none">
+                </div>
+
+                <div class="md:col-span-12 flex flex-wrap items-center justify-between gap-3 pt-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="text-xs text-slate-300">Rutas principales Flecha Amarilla:</span>
+                        <button type="button" onclick="quickRoute('CDMX - Central del Norte', 'León - Central de Autobuses')" class="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg font-semibold">CDMX → León</button>
+                        <button type="button" onclick="quickRoute('CDMX - Central del Norte', 'Querétaro - Terminal Autobuses')" class="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg font-semibold">CDMX → Querétaro</button>
+                        <button type="button" onclick="quickRoute('León - Central de Autobuses', 'Guadalajara - Nueva Central')" class="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg font-semibold">León → Guadalajara</button>
+                        <button type="button" onclick="quickRoute('Guadalajara - Nueva Central', 'Morelia - Terminal Autobuses')" class="text-xs bg-white/10 hover:bg-white/20 px-3 py-1.5 rounded-lg font-semibold">Guadalajara → Morelia</button>
+                    </div>
+                    <button type="submit" class="px-7 py-3 bg-faYellow-400 hover:bg-faYellow-500 text-faBlue-950 font-extrabold rounded-xl text-sm shadow-lg transition-all flex items-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass"></i>
+                        <span>Buscar Boletos</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Layout Principal: Lista de Corridas (Izquierda) + Carrito / Checkout (Derecha) -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <!-- Columna Corridas y Selección de Asientos -->
+            <div class="lg:col-span-8 space-y-5">
+                <!-- Filtros por Línea -->
+                <div class="bg-white p-4 rounded-2xl border border-slate-200 flex flex-wrap items-center justify-between gap-3">
+                    <div>
+                        <h2 id="results-title" class="text-base font-extrabold text-faBlue-900">CDMX - Central del Norte → León - Central de Autobuses</h2>
+                        <p id="results-subtitle" class="text-xs text-slate-500">Selecciona una corrida para elegir tus asientos en el autobús</p>
+                    </div>
+                    <div class="flex flex-wrap gap-1.5" id="brand-filter-pills">
+                        <button onclick="filterResultsByBrand('ALL')" data-brand="ALL" class="brand-pill px-3 py-1.5 rounded-xl text-xs font-extrabold bg-faBlue-900 text-white">Todas</button>
+                        <button onclick="filterResultsByBrand('Primera Plus')" data-brand="Primera Plus" class="brand-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700">Primera Plus</button>
+                        <button onclick="filterResultsByBrand('Coordinados')" data-brand="Coordinados" class="brand-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700">Coordinados</button>
+                        <button onclick="filterResultsByBrand('Flecha Amarilla')" data-brand="Flecha Amarilla" class="brand-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700">Flecha Amarilla</button>
+                        <button onclick="filterResultsByBrand('Unebus')" data-brand="Unebus" class="brand-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700">Unebus</button>
+                    </div>
+                </div>
+
+                <!-- Lista de Corridas -->
+                <div id="schedules-list" class="space-y-4">
+                    <!-- Renderizado dinámico JS -->
+                </div>
+
+                <!-- Mapa de Asientos Inline (Se despliega al elegir una corrida) -->
+                <div id="inline-seat-selector" class="hidden bg-white rounded-3xl border-2 border-faBlue-900 shadow-xl p-6">
+                    <div class="flex items-center justify-between pb-4 mb-5 border-b border-slate-200">
+                        <div>
+                            <span id="seat-panel-brand" class="px-2.5 py-1 rounded-md bg-faBlue-900 text-faYellow-400 text-xs font-extrabold">Primera Plus</span>
+                            <h3 class="text-lg font-extrabold text-faBlue-900 mt-1">Elige tus asientos para agregarlos a tu carrito ClickBus</h3>
+                        </div>
+                        <button onclick="closeInlineSeatSelector()" class="text-xs font-bold text-slate-500 hover:text-slate-800 px-3 py-1.5 rounded-lg bg-slate-100">
+                            Cerrar mapa
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-12 gap-6 items-center">
+                        <!-- Croquis del Autobús -->
+                        <div class="md:col-span-7 bg-slate-50 rounded-2xl p-4 border border-slate-200">
+                            <div class="flex items-center justify-center gap-4 text-[11px] font-bold mb-4">
+                                <span class="flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-white border-2 border-slate-300 inline-block"></span> Disponible</span>
+                                <span class="flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-clickRed-500 border-2 border-clickRed-600 inline-block"></span> En Carrito</span>
+                                <span class="flex items-center gap-1.5"><span class="w-4 h-4 rounded bg-slate-300 inline-block"></span> Ocupado</span>
+                            </div>
+
+                            <div class="max-w-[260px] mx-auto bg-white rounded-t-3xl border-x-2 border-t-2 border-slate-300 p-4">
+                                <div class="flex justify-between text-[10px] font-bold text-slate-400 pb-2 mb-3 border-b border-dashed border-slate-300">
+                                    <span><i class="fa-solid fa-steering-wheel mr-1"></i> Conductor</span>
+                                    <span>Acceso <i class="fa-solid fa-door-open"></i></span>
+                                </div>
+                                <div id="bus-seats-grid" class="space-y-2"></div>
+                                <div class="mt-4 pt-2 border-t border-dashed border-slate-300 text-center text-[10px] font-bold text-slate-400">
+                                    Sanitarios Damas / Caballeros
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Instrucción para Demo Predictive Engagement -->
+                        <div class="md:col-span-5 space-y-4">
+                            <div class="bg-amber-50 border border-amber-200 rounded-2xl p-4 text-xs text-amber-950">
+                                <p class="font-extrabold flex items-center gap-1.5 mb-1">
+                                    <i class="fa-solid fa-lightbulb text-faYellow-600"></i>
+                                    <span>Demo Genesys Predictive Engagement:</span>
+                                </p>
+                                <p class="leading-relaxed">
+                                    Selecciona 1 o más asientos en Primera Plus para cargarlos en tu carrito. Si luego navegas a <strong>"Inicio"</strong> o <strong>"Unidades Primera Plus"</strong> sin finalizar el pago, Genesys detectará el abandono en 2 segundos e invocará al Asistente CX.
+                                </p>
+                            </div>
+                            <div class="text-xs text-slate-500 space-y-1">
+                                <p><i class="fa-solid fa-check text-emerald-500 mr-1.5"></i> Tarifas con IVA y Seguro de Viajero incluidos.</p>
+                                <p><i class="fa-solid fa-check text-emerald-500 mr-1.5"></i> Boleto digital válido directo al abordar.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Columna Derecha: Carrito / Checkout Persistente -->
+            <div class="lg:col-span-4 sticky top-24">
+                <div id="checkout-cart-card" class="bg-white rounded-3xl border border-slate-200 shadow-lg p-6">
+                    <div class="flex items-center justify-between pb-4 mb-4 border-b border-slate-100">
+                        <div class="flex items-center gap-2">
+                            <i class="fa-solid fa-cart-shopping text-clickRed-500"></i>
+                            <h3 class="text-lg font-extrabold text-faBlue-900 font-display">Tu Carrito ClickBus</h3>
+                        </div>
+                        <span id="cart-status-pill" class="px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-bold">Vacío</span>
+                    </div>
+
+                    <!-- Estado Carrito Vacío -->
+                    <div id="cart-empty-state" class="py-8 text-center">
+                        <div class="w-14 h-14 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto mb-3">
+                            <i class="fa-solid fa-ticket text-2xl"></i>
+                        </div>
+                        <p class="text-sm font-bold text-slate-700">Aún no has seleccionado asientos</p>
+                        <p class="text-xs text-slate-500 mt-1">Elige una corrida a la izquierda y marca tus lugares en el autobús.</p>
+                    </div>
+
+                    <!-- Estado Carrito Con Asientos (Checkout) -->
+                    <div id="cart-filled-state" class="hidden space-y-4">
+                        <div class="bg-slate-50 rounded-2xl p-4 border border-slate-200 space-y-2 text-xs">
+                            <div class="flex justify-between items-center">
+                                <span id="cart-brand-badge" class="px-2.5 py-0.5 rounded-md bg-faBlue-900 text-faYellow-400 font-extrabold">Primera Plus</span>
+                                <span id="cart-date-label" class="font-bold text-slate-600">20 Nov 2026</span>
+                            </div>
+                            <p id="cart-route-label" class="font-extrabold text-faBlue-900 text-sm pt-1">CDMX Norte → León</p>
+                            <p id="cart-time-label" class="text-slate-500">Salida: 08:00 hrs • Llegada: 13:10 hrs</p>
+                            <div class="pt-2 border-t border-slate-200 flex justify-between items-center">
+                                <span class="text-slate-500">Asientos seleccionados:</span>
+                                <span id="cart-seats-list" class="font-extrabold text-clickRed-600 text-sm">04A</span>
+                            </div>
+                        </div>
+
+                        <!-- Cupón de Descuento (Se llena automáticamente si el usuario acepta oferta de Genesys) -->
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Código Promocional ClickBus</label>
+                            <div class="flex gap-2">
+                                <input type="text" id="promo-code-input" placeholder="Ej. PLUS10" class="flex-1 px-3 py-2 bg-slate-50 border border-slate-300 rounded-xl text-xs font-extrabold uppercase outline-none focus:border-faBlue-900">
+                                <button type="button" onclick="applyPromoCode()" class="px-3.5 py-2 bg-faBlue-900 hover:bg-faBlue-800 text-white text-xs font-bold rounded-xl">Aplicar</button>
+                            </div>
+                            <p id="promo-applied-msg" class="hidden text-[11px] font-bold text-emerald-600 mt-1">
+                                <i class="fa-solid fa-tag mr-1"></i> Cupón PLUS10 aplicado (10% de descuento extra)
+                            </p>
+                        </div>
+
+                        <!-- Nombre del Pasajero -->
+                        <div>
+                            <label class="block text-[11px] font-bold uppercase text-slate-500 mb-1">Nombre del Pasajero</label>
+                            <input type="text" id="passenger-name-input" value="Alejandro Mendoza" class="w-full px-3.5 py-2.5 bg-white border border-slate-300 rounded-xl text-sm font-semibold outline-none focus:border-faBlue-900">
+                        </div>
+
+                        <!-- Desglose de Total -->
+                        <div class="pt-3 border-t border-slate-200 space-y-1.5 text-sm">
+                            <div class="flex justify-between text-slate-500 text-xs">
+                                <span>Subtotal:</span>
+                                <span id="cart-subtotal">$0 MXN</span>
+                            </div>
+                            <div id="cart-discount-row" class="hidden flex justify-between text-emerald-600 font-bold text-xs">
+                                <span>Descuento Genesys (PLUS10):</span>
+                                <span id="cart-discount-amount">-$0 MXN</span>
+                            </div>
+                            <div class="flex justify-between items-center pt-1">
+                                <span class="font-extrabold text-faBlue-900">Total a Pagar:</span>
+                                <span id="cart-total-price" class="text-2xl font-extrabold text-clickRed-600">$0 MXN</span>
+                            </div>
+                        </div>
+
+                        <button onclick="finalizeCartPurchase()" class="w-full py-3.5 px-5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-sm shadow-lg shadow-emerald-600/20 transition-all flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-lock"></i>
+                            <span>Finalizar Compra y Generar QR</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- ========================================================================= -->
+    <!-- VISTA 4: MIS BOLETOS (PASES DE ABORDAR CON CÓDIGO QR)                     -->
+    <!-- ========================================================================= -->
+    <main id="view-boletos" class="view-section hidden py-12 max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+            <div>
+                <span class="text-xs font-extrabold uppercase tracking-widest text-clickRed-500">Pase de Abordar Digital ClickBus</span>
+                <h1 class="text-3xl font-extrabold text-faBlue-900 mt-1 font-display">Mis Boletos Confirmados</h1>
+                <p class="text-slate-600 text-sm mt-1">Presenta el código QR en tu teléfono directamente en el andén de abordaje sin pasar a taquilla.</p>
+            </div>
+            <button onclick="switchView('compra')" class="px-5 py-2.5 rounded-xl bg-faBlue-900 hover:bg-faBlue-800 text-white text-xs font-bold flex items-center gap-2 self-start">
+                <i class="fa-solid fa-plus"></i>
+                <span>Comprar Nuevo Boleto</span>
+            </button>
+        </div>
+
+        <div id="my-tickets-container" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Renderizado dinámico JS -->
+        </div>
+    </main>
+
+    <!-- ==================== FOOTER CORPORATIVO ==================== -->
+    <footer class="bg-faBlue-950 text-slate-400 py-12 border-t border-white/10 mt-16">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs">
+            <div class="flex items-center gap-2.5">
+                <div class="w-8 h-8 rounded-lg bg-faBlue-800 flex items-center justify-center text-faYellow-400">
+                    <i class="fa-solid fa-location-arrow transform rotate-45"></i>
+                </div>
+                <span class="font-extrabold text-white text-sm font-display">ClickBus <span class="text-faYellow-400 font-semibold text-xs">Powered by Grupo Flecha Amarilla</span></span>
+                <span class="text-slate-600 hidden md:inline">|</span>
+                <span class="hidden md:inline">Primera Plus • Coordinados • Flecha Amarilla • Unebus</span>
+            </div>
+            <p>© 2026 Grupo Flecha Amarilla / ClickBus México. Demo de Genesys Cloud CX & Predictive Engagement.</p>
+        </div>
+    </footer>
+
+    <!-- ==================== MODAL PASE DE ABORDAR QR ==================== -->
+    <div id="qr-ticket-modal" class="fixed inset-0 z-50 hidden bg-faBlue-950/80 backdrop-blur-sm overflow-y-auto">
+        <div class="min-h-screen px-4 py-8 flex items-center justify-center">
+            <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200">
+                <div class="bg-faBlue-900 p-6 text-white text-center relative">
+                    <button onclick="closeQrModal()" class="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/15 hover:bg-white/25 flex items-center justify-center text-white">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                    <div class="w-12 h-12 rounded-2xl bg-emerald-500/20 mx-auto flex items-center justify-center mb-2">
+                        <i class="fa-solid fa-circle-check text-2xl text-emerald-400"></i>
+                    </div>
+                    <h3 class="text-xl font-extrabold font-display">¡Boleto ClickBus Emitido!</h3>
+                    <p class="text-xs text-slate-300 mt-0.5">Aborda directo mostrando este código QR en el andén.</p>
+                </div>
+                <div id="qr-modal-content" class="p-6"></div>
+                <div class="px-6 pb-6">
+                    <button onclick="closeQrModal()" class="w-full py-3 rounded-xl bg-faBlue-900 hover:bg-faBlue-800 text-white text-xs font-extrabold">
+                        Ir a Mis Boletos
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== ALERTA VISUAL GENESYS PREDICTIVE ENGAGEMENT ==================== -->
+    <div id="pe-trigger-banner" class="hidden fixed bottom-24 right-5 z-50 max-w-sm w-full bg-faBlue-900 text-white rounded-2xl shadow-2xl border border-faYellow-400/50 p-4 animate-slide-in">
+        <div class="flex items-start gap-3">
+            <div class="w-10 h-10 rounded-xl bg-faYellow-400 flex items-center justify-center shrink-0 text-faBlue-950 shadow-md">
+                <i class="fa-solid fa-radar text-lg"></i>
+            </div>
+            <div class="flex-1">
+                <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-extrabold uppercase tracking-wider text-faYellow-400">Genesys Predictive Engagement</span>
+                    <button onclick="dismissPeBanner()" class="text-slate-400 hover:text-white text-xs"><i class="fa-solid fa-xmark"></i></button>
+                </div>
+                <p class="text-xs font-bold text-white mt-0.5">Señal de Abandono Detectada en ClickBus</p>
+                <p class="text-[11px] text-slate-300 mt-1">Invocando Asistente Virtual Flecha Amarilla para recuperar tu boleto...</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== WIDGET FLOTANTE AGENTE VIRTUAL GENESYS CLOUD CX ==================== -->
+    <div class="fixed bottom-5 right-5 z-50 flex flex-col items-end">
+        <div id="cx-chat-window" class="hidden mb-3 w-[360px] sm:w-[400px] bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden flex flex-col">
+            <!-- Header Genesys CX -->
+            <div class="bg-faBlue-900 text-white p-4 flex items-center justify-between">
+                <div class="flex items-center gap-3">
+                    <div class="relative">
+                        <div class="w-10 h-10 rounded-full bg-faYellow-400 flex items-center justify-center text-faBlue-950 font-bold shadow">
+                            <i class="fa-solid fa-headset text-lg"></i>
+                        </div>
+                        <span class="absolute bottom-0 right-0 w-3 h-3 rounded-full bg-emerald-400 border-2 border-faBlue-900"></span>
+                    </div>
+                    <div>
+                        <h4 class="text-sm font-extrabold leading-tight font-display">Asistente ClickBus • Genesys CX</h4>
+                        <p id="chat-agent-status" class="text-[11px] text-faYellow-400 font-semibold">Grupo Flecha Amarilla • En Línea</p>
+                    </div>
+                </div>
+                <button onclick="toggleChatWidget(false)" class="w-8 h-8 rounded-full hover:bg-white/10 flex items-center justify-center text-slate-300 hover:text-white">
+                    <i class="fa-solid fa-chevron-down"></i>
+                </button>
+            </div>
+
+            <!-- Barra de Contexto de Jornada -->
+            <div class="bg-amber-50 px-4 py-2 border-b border-amber-100 flex items-center justify-between text-[11px] text-faBlue-900">
+                <span class="font-bold flex items-center gap-1.5">
+                    <i class="fa-solid fa-bolt text-clickRed-500"></i>
+                    Contexto: <strong id="chat-journey-context">Exploración ClickBus</strong>
+                </span>
+                <span class="px-2 py-0.5 rounded bg-white text-faBlue-900 font-extrabold border border-amber-200">Genesys Cloud</span>
+            </div>
+
+            <!-- Mensajes -->
+            <div id="cx-chat-messages" class="p-4 h-80 overflow-y-auto space-y-3 bg-slate-50 text-xs sm:text-sm"></div>
+
+            <!-- Acciones Rápidas Dinámicas -->
+            <div id="cx-quick-replies" class="px-3 py-2.5 bg-white border-t border-slate-100 flex flex-wrap gap-1.5"></div>
+
+            <!-- Input -->
+            <form onsubmit="handleChatSubmit(event)" class="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
+                <input type="text" id="cx-chat-input" placeholder="Escribe tu respuesta..." class="flex-1 px-3.5 py-2 bg-slate-100 rounded-xl text-xs sm:text-sm focus:bg-white focus:ring-2 focus:ring-faBlue-900 outline-none">
+                <button type="submit" class="w-10 h-10 rounded-xl bg-faBlue-900 hover:bg-faBlue-800 text-faYellow-400 flex items-center justify-center shadow-sm">
+                    <i class="fa-solid fa-paper-plane text-xs"></i>
+                </button>
+            </form>
+        </div>
+
+        <!-- Botón Flotante -->
+        <button onclick="toggleChatWidget()" class="genesys-pulse relative flex items-center gap-3 bg-faBlue-900 hover:bg-faBlue-800 text-white px-5 py-3.5 rounded-full shadow-2xl border border-white/10 transition-all hover:scale-105">
+            <i class="fa-solid fa-comments text-lg text-faYellow-400"></i>
+            <span class="font-extrabold text-xs sm:text-sm">Asistente ClickBus CX</span>
+            <span id="chat-unread-badge" class="hidden w-5 h-5 rounded-full bg-clickRed-500 text-white text-[11px] font-extrabold flex items-center justify-center">1</span>
+        </button>
+    </div>
+
+    <!-- ==================== LÓGICA JAVASCRIPT ==================== -->
+    <script>
+        // 1. TERMINALES DEL CORREDOR FLECHA AMARILLA / PRIMERA PLUS
+        const TERMINALS = [
+            "CDMX - Central del Norte",
+            "León - Central de Autobuses",
+            "Querétaro - Terminal Autobuses",
+            "Guadalajara - Nueva Central",
+            "Guanajuato - Central de Autobuses",
+            "Irapuato - Central de Autobuses",
+            "Celaya - Central de Autobuses",
+            "Morelia - Terminal Autobuses",
+            "San Luis Potosí - TTP",
+            "Aguascalientes - Central de Autobuses",
+            "Aeropuerto Internacional del Bajío (BJX)",
+            "Puerto Vallarta - Central de Autobuses"
+        ];
+
+        const BRAND_STYLES = {
+            "Primera Plus": { badge: "bg-faBlue-900 text-faYellow-400", category: "Primera Clase • Pantallas y Lunch", layout: "2x2" },
+            "Coordinados": { badge: "bg-blue-100 text-faBlue-900", category: "Servicio Intermedio Climatizado", layout: "2x2" },
+            "Flecha Amarilla": { badge: "bg-faYellow-400 text-faBlue-950", category: "Servicio Regional Directo", layout: "2x2" },
+            "Unebus": { badge: "bg-emerald-100 text-emerald-900", category: "Conexión Aeropuerto BJX", layout: "2x2" }
+        };
+
+        // 2. ESTADO GLOBAL Y CARRITO
+        let appState = {
+            currentView: 'inicio',
+            tripType: 'oneway',
+            origin: "CDMX - Central del Norte",
+            destination: "León - Central de Autobuses",
+            departureDate: "",
+            selectedBrandFilter: "ALL",
+            currentSchedules: [],
+            // Carrito de compra activo
+            cart: {
+                schedule: null,
+                seats: [],
+                promoApplied: false
+            },
+            // Temporizador de Genesys Predictive Engagement
+            abandonmentTimer: null,
+            // Boletos comprados
+            tickets: [
+                {
+                    folio: "CBX-9421",
+                    brand: "Primera Plus",
+                    origin: "CDMX - Central del Norte",
+                    destination: "Querétaro - Terminal Autobuses",
+                    date: "2026-11-22",
+                    departureTime: "09:30",
+                    seats: ["03A"],
+                    passenger: "Alejandro Mendoza",
+                    totalPaid: 435
+                }
+            ]
+        };
+
+        // 3. INICIALIZACIÓN
+        document.addEventListener('DOMContentLoaded', () => {
+            initSelectors();
+            selectCabinPreview('dd');
+            generateSchedulesForRoute();
+            renderSchedules();
+            renderMyTickets();
+            initDefaultChat();
+        });
+
+        function initSelectors() {
+            const origSel = document.getElementById('origin-select');
+            const destSel = document.getElementById('destination-select');
+            TERMINALS.forEach(t => {
+                origSel.add(new Option(t, t));
+                destSel.add(new Option(t, t));
+            });
+            origSel.value = appState.origin;
+            destSel.value = appState.destination;
+
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            appState.departureDate = tomorrow.toISOString().split('T')[0];
+            document.getElementById('departure-date').value = appState.departureDate;
+        }
+
+        // 4. NAVEGACIÓN ENTRE VISTAS + MOTOR GENESYS PREDICTIVE ENGAGEMENT
+        function switchView(targetView) {
+            const previousView = appState.currentView;
+            appState.currentView = targetView;
+
+            // Ocultar todas las vistas y mostrar la seleccionada
+            document.querySelectorAll('.view-section').forEach(sec => sec.classList.add('hidden'));
+            document.getElementById(`view-${targetView}`).classList.remove('hidden');
+
+            // Actualizar estilos de pestañas
+            document.querySelectorAll('.nav-tab').forEach(btn => {
+                if (btn.dataset.nav === targetView) {
+                    btn.className = "nav-tab px-4 py-2 rounded-xl text-sm font-bold bg-white text-faBlue-900 shadow-sm transition-all flex items-center gap-2";
+                } else {
+                    btn.className = "nav-tab px-4 py-2 rounded-xl text-sm font-semibold text-slate-600 hover:text-faBlue-900 transition-all flex items-center gap-2";
+                }
+            });
+
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Evaluar reglas de Genesys Predictive Engagement
+            evaluatePredictiveEngagement(previousView, targetView);
+        }
+
+        function evaluatePredictiveEngagement(fromView, toView) {
+            const hasPendingCart = appState.cart.schedule !== null && appState.cart.seats.length > 0;
+
+            if (appState.abandonmentTimer) {
+                clearTimeout(appState.abandonmentTimer);
+                appState.abandonmentTimer = null;
+            }
+
+            const viewNames = {
+                'inicio': 'Navegando ClickBus • Flecha Amarilla',
+                'flota': 'Explorando Unidades Primera Plus',
+                'compra': 'En Proceso de Compra (Taquilla ClickBus)',
+                'boletos': 'Consultando Mis Boletos'
+            };
+
+            if (toView !== 'compra' && hasPendingCart) {
+                updatePeTelemetryBar("Señal Detectada: Evaluando abandono de carrito...", "amber");
+
+                appState.abandonmentTimer = setTimeout(() => {
+                    triggerGenesysCartAbandonment();
+                }, 2000);
+            } else {
+                updatePeTelemetryBar(viewNames[toView] || 'Monitoreando Jornada', "emerald");
+            }
+        }
+
+        function updatePeTelemetryBar(statusText, color) {
+            const statusEl = document.getElementById('pe-journey-status');
+            const dotEl = document.getElementById('pe-dot');
+            const pingEl = document.getElementById('pe-ping');
+
+            statusEl.textContent = statusText;
+            if (color === 'amber') {
+                statusEl.className = "px-2.5 py-0.5 rounded-full bg-faYellow-400/20 text-faYellow-400 font-bold border border-faYellow-400/30";
+                dotEl.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-faYellow-400";
+                pingEl.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-faYellow-400 opacity-75";
+            } else if (color === 'red') {
+                statusEl.className = "px-2.5 py-0.5 rounded-full bg-clickRed-500 text-white font-extrabold";
+                dotEl.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-clickRed-500";
+                pingEl.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-clickRed-500 opacity-75";
+            } else {
+                statusEl.className = "px-2.5 py-0.5 rounded-full bg-white/10 text-emerald-300 font-semibold";
+                dotEl.className = "relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500";
+                pingEl.className = "animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75";
+            }
+        }
+
+        function triggerGenesysCartAbandonment() {
+            const sched = appState.cart.schedule;
+            const seats = appState.cart.seats;
+            if (!sched || seats.length === 0) return;
+
+            const total = calculateCartTotals().total;
+            const origShort = appState.origin.split(' - ')[0];
+            const destShort = appState.destination.split(' - ')[0];
+
+            updatePeTelemetryBar("Carrito Abandonado - ¡Trigger Disparado!", "red");
+
+            const banner = document.getElementById('pe-trigger-banner');
+            banner.classList.remove('hidden');
+            setTimeout(() => banner.classList.add('hidden'), 6500);
+
+            toggleChatWidget(true);
+
+            document.getElementById('chat-journey-context').textContent = `Abandono: ${origShort} → ${destShort}`;
+
+            const proactiveMsg = `
+                ¡Hola! 👋 Noté en <strong>ClickBus</strong> que dejaste pendiente tu boleto de <strong>${origShort} a ${destShort}</strong> en <strong>${sched.brand}</strong> (Asiento${seats.length > 1 ? 's' : ''} <strong>${seats.join(', ')}</strong>) por <strong>$${total.toLocaleString('es-MX')} MXN</strong>.<br><br>
+                ¿Tuviste algún inconveniente con tu pago o te gustaría asegurar tu lugar ahora con un <strong>10% de descuento exclusivo (Cupón PLUS10)</strong>?
+            `;
+            appendBotMessage(proactiveMsg);
+
+            setQuickReplies([
+                { label: "⚡ Aplicar cupón PLUS10 y pagar", action: "recover_discount" },
+                { label: "🛒 Retomar compra ahora", action: "recover_resume" },
+                { label: "🛋️ Amenidades Primera Plus", action: "info_amenidades" },
+                { label: "🎧 Hablar con un asesor GFA", action: "escalate_human" }
+            ]);
+        }
+
+        function dismissPeBanner() {
+            document.getElementById('pe-trigger-banner').classList.add('hidden');
+        }
+
+        function simulateQuickAbandonment() {
+            if (!appState.cart.schedule || appState.cart.seats.length === 0) {
+                appState.origin = "CDMX - Central del Norte";
+                appState.destination = "León - Central de Autobuses";
+                document.getElementById('origin-select').value = appState.origin;
+                document.getElementById('destination-select').value = appState.destination;
+                generateSchedulesForRoute();
+                renderSchedules();
+
+                const primeraSched = appState.currentSchedules.find(s => s.brand === "Primera Plus");
+                appState.cart.schedule = primeraSched;
+                appState.cart.seats = ["04A"];
+                appState.cart.promoApplied = false;
+                updateCartUI();
+            }
+
+            switchView('inicio');
+            showToast("Simulando salida de ClickBus con boleto Primera Plus pendiente...", "info");
+        }
+
+        // 5. COMPARADOR DE CABINAS PRIMERA PLUS EN LANDING
+        function selectCabinPreview(type) {
+            const btnDd = document.getElementById('btn-cabin-dd');
+            const btn1p = document.getElementById('btn-cabin-1p');
+            const card = document.getElementById('cabin-preview-card');
+
+            if (type === 'dd') {
+                btnDd.className = "px-4 py-2 rounded-xl text-xs font-extrabold bg-faBlue-900 text-white shadow-sm transition-all";
+                btn1p.className = "px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-faBlue-900 transition-all";
+
+                card.innerHTML = `
+                    <div class="lg:col-span-6 bg-slate-50 rounded-2xl p-6 border border-slate-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-extrabold uppercase text-faBlue-900">Primera Plus Doble Piso (Planta Baja / Alta)</span>
+                            <span class="px-2.5 py-0.5 rounded-full bg-faYellow-400 text-faBlue-950 text-[11px] font-extrabold">Volvo 9800 DD</span>
+                        </div>
+                        <svg viewBox="0 0 360 150" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="10" y="10" width="340" height="130" rx="16" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+                            <rect x="40" y="22" width="44" height="28" rx="6" fill="#00244D"/><text x="53" y="40" fill="#FFCC00" font-size="10" font-weight="bold">01A</text>
+                            <rect x="92" y="22" width="44" height="28" rx="6" fill="#00244D"/><text x="105" y="40" fill="#FFCC00" font-size="10" font-weight="bold">01B</text>
+                            <rect x="175" y="22" width="44" height="28" rx="6" fill="#00244D"/><text x="188" y="40" fill="#FFCC00" font-size="10" font-weight="bold">02A</text>
+                            <rect x="227" y="22" width="44" height="28" rx="6" fill="#00244D"/><text x="240" y="40" fill="#FFCC00" font-size="10" font-weight="bold">02B</text>
+                            <line x1="30" y1="75" x2="330" y2="75" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="6 4"/>
+                            <text x="142" y="78" fill="#94a3b8" font-size="9" font-weight="bold">PASILLO CENTRAL</text>
+                            <rect x="40" y="96" width="44" height="28" rx="6" fill="#E30613"/><text x="53" y="114" fill="#ffffff" font-size="10" font-weight="bold">01C</text>
+                            <rect x="92" y="96" width="44" height="28" rx="6" fill="#E30613"/><text x="105" y="114" fill="#ffffff" font-size="10" font-weight="bold">01D</text>
+                            <rect x="175" y="96" width="44" height="28" rx="6" fill="#E30613"/><text x="188" y="114" fill="#ffffff" font-size="10" font-weight="bold">02C</text>
+                            <rect x="227" y="96" width="44" height="28" rx="6" fill="#E30613"/><text x="240" y="114" fill="#ffffff" font-size="10" font-weight="bold">02D</text>
+                        </svg>
+                    </div>
+                    <div class="lg:col-span-6 space-y-4">
+                        <span class="px-3 py-1 rounded-lg bg-faBlue-900 text-faYellow-400 text-xs font-extrabold">PRIMERA PLUS DOBLE PISO</span>
+                        <h3 class="text-2xl font-extrabold text-faBlue-900 font-display">Vistas Panorámicas y Salón Ejecutivo</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Nuestras unidades Doble Piso ofrecen 38 lugares panorámicos en el segundo nivel y 12 asientos exclusivos en planta baja con mayor privacidad y acceso inmediato.
+                        </p>
+                        <div class="grid grid-cols-2 gap-3 text-xs font-bold text-faBlue-900">
+                            <div class="flex items-center gap-2"><i class="fa-solid fa-tv text-clickRed-500"></i> Pantalla táctil individual</div>
+                            <div class="flex items-center gap-2"><i class="fa-solid fa-wifi text-clickRed-500"></i> Wi-Fi a bordo gratuito</div>
+                            <div class="flex items-center gap-2"><i class="fa-solid fa-mug-hot text-clickRed-500"></i> Lunch y bebida al abordar</div>
+                            <div class="flex items-center gap-2"><i class="fa-solid fa-plug text-clickRed-500"></i> Contactos eléctricos + USB</div>
+                        </div>
+                        <button onclick="goToBookingWithBrand('Primera Plus')" class="px-6 py-3 rounded-xl bg-faYellow-400 hover:bg-faYellow-500 text-faBlue-950 text-xs font-extrabold transition-colors">
+                            Reservar en Primera Plus Doble Piso
+                        </button>
+                    </div>
+                `;
+            } else {
+                btn1p.className = "px-4 py-2 rounded-xl text-xs font-extrabold bg-faBlue-900 text-white shadow-sm transition-all";
+                btnDd.className = "px-4 py-2 rounded-xl text-xs font-bold text-slate-600 hover:text-faBlue-900 transition-all";
+
+                card.innerHTML = `
+                    <div class="lg:col-span-6 bg-slate-50 rounded-2xl p-6 border border-slate-200">
+                        <div class="flex items-center justify-between mb-3">
+                            <span class="text-xs font-extrabold uppercase text-faBlue-900">Primera Plus Un Piso (36 Asientos Amplios)</span>
+                            <span class="px-2.5 py-0.5 rounded-full bg-blue-100 text-faBlue-900 text-[11px] font-bold">Irizar i8</span>
+                        </div>
+                        <svg viewBox="0 0 360 150" class="w-full h-auto" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="10" y="10" width="340" height="130" rx="16" fill="#ffffff" stroke="#cbd5e1" stroke-width="2"/>
+                            <rect x="45" y="22" width="46" height="26" rx="5" fill="#003876"/><text x="58" y="39" fill="#ffffff" font-size="9" font-weight="bold">01A</text>
+                            <rect x="100" y="22" width="46" height="26" rx="5" fill="#003876"/><text x="113" y="39" fill="#ffffff" font-size="9" font-weight="bold">01B</text>
+                            <rect x="185" y="22" width="46" height="26" rx="5" fill="#003876"/><text x="198" y="39" fill="#ffffff" font-size="9" font-weight="bold">02A</text>
+                            <rect x="240" y="22" width="46" height="26" rx="5" fill="#003876"/><text x="253" y="39" fill="#ffffff" font-size="9" font-weight="bold">02B</text>
+                            <line x1="30" y1="75" x2="330" y2="75" stroke="#e2e8f0" stroke-width="2" stroke-dasharray="6 4"/>
+                            <rect x="45" y="96" width="46" height="26" rx="5" fill="#003876"/><text x="58" y="113" fill="#ffffff" font-size="9" font-weight="bold">01C</text>
+                            <rect x="100" y="96" width="46" height="26" rx="5" fill="#003876"/><text x="113" y="113" fill="#ffffff" font-size="9" font-weight="bold">01D</text>
+                            <rect x="185" y="96" width="46" height="26" rx="5" fill="#003876"/><text x="198" y="113" fill="#ffffff" font-size="9" font-weight="bold">02C</text>
+                            <rect x="240" y="96" width="46" height="26" rx="5" fill="#003876"/><text x="253" y="113" fill="#ffffff" font-size="9" font-weight="bold">02D</text>
+                        </svg>
+                    </div>
+                    <div class="lg:col-span-6 space-y-4">
+                        <span class="px-3 py-1 rounded-lg bg-clickRed-500 text-white text-xs font-extrabold">PRIMERA PLUS UN PISO</span>
+                        <h3 class="text-2xl font-extrabold text-faBlue-900 font-display">Mayor Espacio Entre Asientos y Descansapiernas</h3>
+                        <p class="text-sm text-slate-600 leading-relaxed">
+                            Configuración de solo 36 lugares que brinda una reclinación superior, apoyo para piernas y cabeceras ajustables para descansar durante todo el trayecto.
+                        </p>
+                        <div class="grid grid-cols-2 gap-3 text-xs font-bold text-faBlue-900">
+                            <div class="flex items-center gap-2"><i class="fa-solid fa-chair text-clickRed-500"></i> 36 butacas extra anchas</div>
+                            <div class="flex items-center gap-2"><i class="fa-solid fa-restroom text-clickRed-500"></i> Sanitarios H / M independientes</div>
+                            <div class="flex items-center gap-2"><i class="fa-solid fa-couch text-clickRed-500"></i> Acceso a Salas VIP</div>
+                            <div class="flex items-center gap-2"><i class="fa-solid fa-bolt text-clickRed-500"></i> Conectores 110V + USB</div>
+                        </div>
+                        <button onclick="goToBookingWithBrand('Primera Plus')" class="px-6 py-3 rounded-xl bg-faBlue-900 hover:bg-faBlue-800 text-white text-xs font-extrabold transition-colors">
+                            Reservar en Primera Plus Un Piso
+                        </button>
+                    </div>
+                `;
+            }
+        }
+
+        // 6. TAQUILLA CLICKBUS: BÚSQUEDA, SELECCIÓN DE ASIENTOS Y CARRITO
+        function goToBookingWithBrand(brand) {
+            switchView('compra');
+            filterResultsByBrand(brand);
+        }
+
+        function setTripType(type) {
+            appState.tripType = type;
+            const btnOne = document.getElementById('btn-trip-oneway');
+            const btnRound = document.getElementById('btn-trip-round');
+            if (type === 'oneway') {
+                btnOne.className = "px-4 py-2 rounded-lg text-xs font-extrabold bg-white text-faBlue-900 shadow-sm";
+                btnRound.className = "px-4 py-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white";
+            } else {
+                btnRound.className = "px-4 py-2 rounded-lg text-xs font-extrabold bg-white text-faBlue-900 shadow-sm";
+                btnOne.className = "px-4 py-2 rounded-lg text-xs font-bold text-slate-300 hover:text-white";
+            }
+            renderSchedules();
+            updateCartUI();
+        }
+
+        function swapLocations() {
+            const o = document.getElementById('origin-select');
+            const d = document.getElementById('destination-select');
+            const tmp = o.value;
+            o.value = d.value;
+            d.value = tmp;
+        }
+
+        function quickRoute(orig, dest) {
+            document.getElementById('origin-select').value = orig;
+            document.getElementById('destination-select').value = dest;
+            handleSearch(new Event('submit'));
+        }
+
+        function handleSearch(e) {
+            if (e) e.preventDefault();
+            const orig = document.getElementById('origin-select').value;
+            const dest = document.getElementById('destination-select').value;
+            if (orig === dest) {
+                showToast("Selecciona un destino distinto al origen.", "warning");
+                return;
+            }
+            appState.origin = orig;
+            appState.destination = dest;
+            appState.departureDate = document.getElementById('departure-date').value;
+            generateSchedulesForRoute();
+            renderSchedules();
+        }
+
+        function generateSchedulesForRoute() {
+            const key = `${appState.origin}-${appState.destination}`;
+            let basePrice = 690;
+            let mins = 310;
+
+            if (key.includes("Querétaro")) { basePrice = 390; mins = 175; }
+            else if (key.includes("Guadalajara")) { basePrice = 640; mins = 260; }
+            else if (key.includes("BJX")) { basePrice = 140; mins = 45; }
+            else if (key.includes("Morelia")) { basePrice = 580; mins = 230; }
+            else if (key.includes("Vallarta")) { basePrice = 1120; mins = 480; }
+
+            const fmtDur = (m) => `${Math.floor(m / 60)}h ${m % 60}m`;
+            const addMins = (t, add) => {
+                const [h, m] = t.split(':').map(Number);
+                const tot = h * 60 + m + add;
+                return `${Math.floor((tot / 60) % 24).toString().padStart(2, '0')}:${(tot % 60).toString().padStart(2, '0')}`;
+            };
+
+            appState.currentSchedules = [
+                {
+                    id: "GFA-101",
+                    brand: "Primera Plus",
+                    unitDetail: "Doble Piso • Servicio Directo",
+                    departureTime: "08:00",
+                    arrivalTime: addMins("08:00", mins),
+                    duration: fmtDur(mins),
+                    price: Math.round(basePrice * 1.18),
+                    occupiedSeats: ["01A", "02B", "03C", "05A"]
+                },
+                {
+                    id: "GFA-102",
+                    brand: "Primera Plus",
+                    unitDetail: "Irizar i8 (36 Asientos) • Directo",
+                    departureTime: "10:30",
+                    arrivalTime: addMins("10:30", mins),
+                    duration: fmtDur(mins),
+                    price: Math.round(basePrice * 1.15),
+                    occupiedSeats: ["01B", "04C", "04D"]
+                },
+                {
+                    id: "GFA-103",
+                    brand: "Coordinados",
+                    unitDetail: "Servicio Intermedio Climatizado",
+                    departureTime: "12:15",
+                    arrivalTime: addMins("12:15", mins + 25),
+                    duration: fmtDur(mins + 25),
+                    price: Math.round(basePrice * 0.85),
+                    occupiedSeats: ["02A", "02B", "06C"]
+                },
+                {
+                    id: "GFA-104",
+                    brand: "Flecha Amarilla",
+                    unitDetail: "Servicio Regional • Salida Continua",
+                    departureTime: "14:45",
+                    arrivalTime: addMins("14:45", mins + 40),
+                    duration: fmtDur(mins + 40),
+                    price: Math.round(basePrice * 0.72),
+                    occupiedSeats: ["01C", "03D"]
+                },
+                {
+                    id: "GFA-105",
+                    brand: "Unebus",
+                    unitDetail: "Conexión Aeropuerto BJX",
+                    departureTime: "16:30",
+                    arrivalTime: addMins("16:30", mins),
+                    duration: fmtDur(mins),
+                    price: Math.round(basePrice * 0.80),
+                    occupiedSeats: ["02D"]
+                }
+            ];
+        }
+
+        function filterResultsByBrand(brand) {
+            appState.selectedBrandFilter = brand;
+            document.querySelectorAll('.brand-pill').forEach(b => {
+                b.className = b.dataset.brand === brand
+                    ? "brand-pill px-3 py-1.5 rounded-xl text-xs font-extrabold bg-faBlue-900 text-white"
+                    : "brand-pill px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 text-slate-700";
+            });
+            renderSchedules();
+        }
+
+        function renderSchedules() {
+            document.getElementById('results-title').textContent = `${appState.origin} → ${appState.destination}`;
+            const list = document.getElementById('schedules-list');
+            const filtered = appState.selectedBrandFilter === "ALL"
+                ? appState.currentSchedules
+                : appState.currentSchedules.filter(s => s.brand === appState.selectedBrandFilter);
+
+            list.innerHTML = filtered.map(sched => {
+                const st = BRAND_STYLES[sched.brand];
+                const price = appState.tripType === 'round' ? Math.round(sched.price * 0.9) : sched.price;
+                const isSelectedSched = appState.cart.schedule && appState.cart.schedule.id === sched.id;
+
+                return `
+                    <div class="bg-white rounded-2xl border ${isSelectedSched ? 'border-2 border-clickRed-500 shadow-md' : 'border-slate-200'} p-5 transition-all">
+                        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                            <div>
+                                <div class="flex flex-wrap items-center gap-2 mb-1">
+                                    <span class="px-2.5 py-1 rounded-lg text-xs font-extrabold ${st.badge}">${sched.brand}</span>
+                                    <span class="text-xs text-slate-500 font-semibold">${sched.unitDetail}</span>
+                                </div>
+                                <div class="flex items-center gap-4 mt-2">
+                                    <div>
+                                        <span class="text-xl font-extrabold text-faBlue-900">${sched.departureTime}</span>
+                                        <span class="text-[11px] text-slate-400 block">Salida</span>
+                                    </div>
+                                    <div class="text-xs text-slate-400 font-semibold px-3 py-1 bg-slate-50 rounded-full border border-slate-100">
+                                        ${sched.duration}
+                                    </div>
+                                    <div>
+                                        <span class="text-xl font-extrabold text-faBlue-900">${sched.arrivalTime}</span>
+                                        <span class="text-[11px] text-slate-400 block">Llegada</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex sm:flex-col items-center sm:items-end justify-between border-t sm:border-t-0 pt-3 sm:pt-0 border-slate-100">
+                                <div class="sm:text-right">
+                                    <span class="text-xl font-extrabold text-faBlue-900">$${price.toLocaleString('es-MX')} <span class="text-xs font-semibold text-slate-500">MXN</span></span>
+                                    <span class="text-[11px] text-slate-400 block">por asiento</span>
+                                </div>
+                                <button onclick="openInlineSeatSelector('${sched.id}')" class="mt-0 sm:mt-2 px-4 py-2.5 rounded-xl bg-faBlue-900 hover:bg-clickRed-500 text-white text-xs font-extrabold transition-colors">
+                                    ${isSelectedSched ? 'Editar Asientos' : 'Elegir Asientos'}
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        function openInlineSeatSelector(schedId) {
+            const sched = appState.currentSchedules.find(s => s.id === schedId);
+            if (!sched) return;
+
+            if (!appState.cart.schedule || appState.cart.schedule.id !== sched.id) {
+                appState.cart.schedule = sched;
+                appState.cart.seats = [];
+            }
+
+            document.getElementById('seat-panel-brand').textContent = `${sched.brand} • ${sched.unitDetail} • ${sched.departureTime} hrs`;
+            document.getElementById('inline-seat-selector').classList.remove('hidden');
+            renderSchedules();
+            renderBusSeatMap(sched);
+            updateCartUI();
+
+            document.getElementById('inline-seat-selector').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+
+        function closeInlineSeatSelector() {
+            document.getElementById('inline-seat-selector').classList.add('hidden');
+        }
+
+        function renderBusSeatMap(sched) {
+            const grid = document.getElementById('bus-seats-grid');
+            let html = '';
+            for (let r = 1; r <= 6; r++) {
+                const row = r.toString().padStart(2, '0');
+                html += `
+                    <div class="grid grid-cols-5 gap-1.5 items-center">
+                        ${seatButton(`${row}A`, sched.occupiedSeats)}
+                        ${seatButton(`${row}B`, sched.occupiedSeats)}
+                        <div class="text-center text-[10px] font-bold text-slate-300">${row}</div>
+                        ${seatButton(`${row}C`, sched.occupiedSeats)}
+                        ${seatButton(`${row}D`, sched.occupiedSeats)}
+                    </div>
+                `;
+            }
+            grid.innerHTML = html;
+        }
+
+        function seatButton(code, occupied) {
+            if (occupied.includes(code)) {
+                return `<button type="button" disabled class="h-8 rounded-lg bg-slate-200 text-slate-400 text-[10px] font-bold cursor-not-allowed">${code}</button>`;
+            }
+            const active = appState.cart.seats.includes(code);
+            const cls = active
+                ? "bg-clickRed-500 text-white border-clickRed-600 shadow-sm"
+                : "bg-white text-faBlue-900 border-slate-300 hover:border-clickRed-500";
+            return `<button type="button" onclick="toggleCartSeat('${code}')" class="seat-btn h-8 rounded-lg border-2 text-[10px] font-extrabold ${cls}">${code}</button>`;
+        }
+
+        function toggleCartSeat(code) {
+            const idx = appState.cart.seats.indexOf(code);
+            if (idx > -1) {
+                appState.cart.seats.splice(idx, 1);
+            } else {
+                if (appState.cart.seats.length >= 4) {
+                    showToast("Máximo 4 asientos por compra en ClickBus.", "warning");
+                    return;
+                }
+                appState.cart.seats.push(code);
+            }
+
+            const sched = appState.cart.schedule;
+            renderBusSeatMap(sched);
+            updateCartUI();
+        }
+
+        function calculateCartTotals() {
+            const sched = appState.cart.schedule;
+            if (!sched || appState.cart.seats.length === 0) return { subtotal: 0, discount: 0, total: 0 };
+            const unit = appState.tripType === 'round' ? Math.round(sched.price * 0.9) : sched.price;
+            const subtotal = unit * appState.cart.seats.length;
+            const discount = appState.cart.promoApplied ? Math.round(subtotal * 0.10) : 0;
+            return { subtotal, discount, total: subtotal - discount };
+        }
+
+        function updateCartUI() {
+            const emptyState = document.getElementById('cart-empty-state');
+            const filledState = document.getElementById('cart-filled-state');
+            const statusPill = document.getElementById('cart-status-pill');
+            const navBadge = document.getElementById('nav-cart-badge');
+            const peCartInd = document.getElementById('pe-cart-indicator');
+            const peCartText = document.getElementById('pe-cart-text');
+
+            const count = appState.cart.seats.length;
+            if (!appState.cart.schedule || count === 0) {
+                emptyState.classList.remove('hidden');
+                filledState.classList.add('hidden');
+                statusPill.textContent = "Vacío";
+                statusPill.className = "px-2.5 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[11px] font-bold";
+                navBadge.classList.add('hidden');
+                peCartInd.classList.add('hidden');
+                return;
+            }
+
+            emptyState.classList.add('hidden');
+            filledState.classList.remove('hidden');
+            statusPill.textContent = `${count} asiento(s)`;
+            statusPill.className = "px-2.5 py-0.5 rounded-full bg-clickRed-500 text-white text-[11px] font-extrabold";
+
+            navBadge.textContent = count;
+            navBadge.classList.remove('hidden');
+            peCartInd.classList.remove('hidden');
+            peCartText.textContent = `${count} asiento(s) en carrito`;
+
+            const sched = appState.cart.schedule;
+            const totals = calculateCartTotals();
+
+            document.getElementById('cart-brand-badge').textContent = sched.brand;
+            document.getElementById('cart-date-label').textContent = formatReadableDate(appState.departureDate);
+            document.getElementById('cart-route-label').textContent = `${appState.origin.split(' - ')[0]} → ${appState.destination.split(' - ')[0]}`;
+            document.getElementById('cart-time-label').textContent = `Salida: ${sched.departureTime} hrs • Llegada: ${sched.arrivalTime} hrs`;
+            document.getElementById('cart-seats-list').textContent = appState.cart.seats.sort().join(', ');
+
+            document.getElementById('cart-subtotal').textContent = `$${totals.subtotal.toLocaleString('es-MX')} MXN`;
+
+            const discountRow = document.getElementById('cart-discount-row');
+            const promoMsg = document.getElementById('promo-applied-msg');
+            if (appState.cart.promoApplied) {
+                discountRow.classList.remove('hidden');
+                promoMsg.classList.remove('hidden');
+                document.getElementById('cart-discount-amount').textContent = `-$${totals.discount.toLocaleString('es-MX')} MXN`;
+            } else {
+                discountRow.classList.add('hidden');
+                promoMsg.classList.add('hidden');
+            }
+
+            document.getElementById('cart-total-price').textContent = `$${totals.total.toLocaleString('es-MX')} MXN`;
+        }
+
+        function applyPromoCode() {
+            const code = document.getElementById('promo-code-input').value.trim().toUpperCase();
+            if (code === 'PLUS10') {
+                appState.cart.promoApplied = true;
+                updateCartUI();
+                showToast("¡Cupón PLUS10 aplicado! 10% de descuento en tu boleto.", "success");
+            } else {
+                showToast("Código no válido. Usa PLUS10 para 10% de descuento.", "warning");
+            }
+        }
+
+        function finalizeCartPurchase() {
+            const sched = appState.cart.schedule;
+            if (!sched || appState.cart.seats.length === 0) return;
+
+            const passenger = document.getElementById('passenger-name-input').value.trim() || "Alejandro Mendoza";
+            const totals = calculateCartTotals();
+            const folio = `CBX-${Math.floor(1000 + Math.random() * 9000)}`;
+
+            const newTicket = {
+                folio,
+                brand: sched.brand,
+                origin: appState.origin,
+                destination: appState.destination,
+                date: appState.departureDate,
+                departureTime: sched.departureTime,
+                seats: [...appState.cart.seats].sort(),
+                passenger,
+                totalPaid: totals.total
+            };
+
+            sched.occupiedSeats.push(...appState.cart.seats);
+
+            appState.tickets.unshift(newTicket);
+            appState.cart.schedule = null;
+            appState.cart.seats = [];
+            appState.cart.promoApplied = false;
+            document.getElementById('promo-code-input').value = '';
+
+            if (appState.abandonmentTimer) clearTimeout(appState.abandonmentTimer);
+            updatePeTelemetryBar("Conversión Completada en ClickBus", "emerald");
+            document.getElementById('nav-tickets-count').textContent = appState.tickets.length;
+
+            closeInlineSeatSelector();
+            updateCartUI();
+            renderSchedules();
+            renderMyTickets();
+            showQrTicketModal(newTicket);
+            showToast(`¡Compra finalizada! Folio ${folio} emitido.`, "success");
+        }
+
+        // 7. RENDERIZADO DE MIS BOLETOS Y MODAL QR
+        function renderMyTickets() {
+            const container = document.getElementById('my-tickets-container');
+            container.innerHTML = appState.tickets.map(t => `
+                <div class="bg-white rounded-3xl border border-slate-200 p-6 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-100">
+                            <span class="px-3 py-1 rounded-lg text-xs font-extrabold ${BRAND_STYLES[t.brand].badge}">${t.brand}</span>
+                            <span class="text-xs font-bold text-slate-500">Folio ClickBus: <strong class="text-faBlue-900">${t.folio}</strong></span>
+                        </div>
+                        <p class="text-base font-extrabold text-faBlue-900">${t.origin} → ${t.destination}</p>
+                        <div class="grid grid-cols-3 gap-2 bg-slate-50 p-3 rounded-2xl border border-slate-100 mt-4 text-xs">
+                            <div><span class="text-slate-400 block">Fecha</span><strong>${formatReadableDate(t.date)}</strong></div>
+                            <div><span class="text-slate-400 block">Salida</span><strong class="text-clickRed-600">${t.departureTime} hrs</strong></div>
+                            <div><span class="text-slate-400 block">Asientos</span><strong>${t.seats.join(', ')}</strong></div>
+                        </div>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between">
+                        <span class="text-xs text-slate-500">Pasajero: <strong class="text-faBlue-900">${t.passenger}</strong></span>
+                        <button onclick='showQrTicketModal(${JSON.stringify(t)})' class="px-4 py-2 rounded-xl bg-faBlue-900 hover:bg-clickRed-500 text-white text-xs font-extrabold transition-colors">
+                            <i class="fa-solid fa-qrcode mr-1"></i> Ver QR
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function showQrTicketModal(ticket) {
+            document.getElementById('qr-modal-content').innerHTML = `
+                <div class="border border-slate-200 rounded-2xl overflow-hidden bg-slate-50">
+                    <div class="p-4 bg-white border-b border-dashed border-slate-300 ticket-divider">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="px-2.5 py-0.5 rounded text-xs font-extrabold ${BRAND_STYLES[ticket.brand].badge}">${ticket.brand}</span>
+                            <span class="text-xs font-extrabold text-faBlue-900">${ticket.folio}</span>
+                        </div>
+                        <p class="text-sm font-extrabold text-faBlue-900">${ticket.origin}</p>
+                        <p class="text-xs text-slate-400 my-0.5">hacia</p>
+                        <p class="text-sm font-extrabold text-faBlue-900">${ticket.destination}</p>
+                    </div>
+                    <div class="p-4 bg-white grid grid-cols-3 text-center text-xs border-b border-slate-200">
+                        <div><span class="text-slate-400 block">Fecha</span><strong>${formatReadableDate(ticket.date)}</strong></div>
+                        <div><span class="text-slate-400 block">Hora</span><strong class="text-clickRed-600">${ticket.departureTime}</strong></div>
+                        <div><span class="text-slate-400 block">Asientos</span><strong>${ticket.seats.join(', ')}</strong></div>
+                    </div>
+                    <div class="p-5 flex flex-col items-center">
+                        <div class="p-3 bg-white rounded-2xl border border-slate-200 mb-2">
+                            <svg width="110" height="110" viewBox="0 0 110 110" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="110" height="110" fill="#fff"/>
+                                <g fill="#00244D">
+                                    <rect x="8" y="8" width="28" height="28" rx="4"/><rect x="13" y="13" width="18" height="18" fill="#fff"/><rect x="18" y="18" width="8" height="8"/>
+                                    <rect x="74" y="8" width="28" height="28" rx="4"/><rect x="79" y="13" width="18" height="18" fill="#fff"/><rect x="84" y="18" width="8" height="8"/>
+                                    <rect x="8" y="74" width="28" height="28" rx="4"/><rect x="13" y="79" width="18" height="18" fill="#fff"/><rect x="18" y="84" width="8" height="8"/>
+                                    <rect x="46" y="12" width="8" height="16"/><rect x="46" y="46" width="18" height="18" fill="#E30613"/>
+                                    <rect x="74" y="46" width="14" height="8"/><rect x="46" y="74" width="10" height="18"/><rect x="74" y="74" width="24" height="12"/>
+                                </g>
+                            </svg>
+                        </div>
+                        <span class="text-xs font-bold text-faBlue-900">${ticket.passenger}</span>
+                        <span class="text-[11px] text-emerald-600 font-bold">Total pagado: $${ticket.totalPaid.toLocaleString('es-MX')} MXN</span>
+                        <span class="text-[10px] text-slate-400 mt-1">ClickBus • Powered by Grupo Flecha Amarilla</span>
+                    </div>
+                </div>
+            `;
+            document.getElementById('qr-ticket-modal').classList.remove('hidden');
+        }
+
+        function closeQrModal() {
+            document.getElementById('qr-ticket-modal').classList.add('hidden');
+            switchView('boletos');
+        }
+
+        // 8. AGENTE VIRTUAL DE GENESYS CLOUD CX (CHAT INTERACTIVO Y RECUPERACIÓN)
+        let isChatOpen = false;
+
+        function toggleChatWidget(force) {
+            const win = document.getElementById('cx-chat-window');
+            const badge = document.getElementById('chat-unread-badge');
+            isChatOpen = typeof force === 'boolean' ? force : !isChatOpen;
+            if (isChatOpen) {
+                win.classList.remove('hidden');
+                badge.classList.add('hidden');
+            } else {
+                win.classList.add('hidden');
+            }
+        }
+
+        function initDefaultChat() {
+            const box = document.getElementById('cx-chat-messages');
+            box.innerHTML = '';
+            appendBotMessage("¡Bienvenido a <strong>ClickBus</strong>, powered by <strong>Grupo Flecha Amarilla</strong>! 👋 Soy tu Asistente Virtual de Genesys Cloud CX. Puedo ayudarte con corridas de <strong>Primera Plus</strong>, Salas de Espera VIP o tu compra de boletos.");
+            setQuickReplies([
+                { label: "🚌 Amenidades Primera Plus", action: "info_amenidades" },
+                { label: "🛋️ Salas de Espera VIP", action: "info_salas" },
+                { label: "🎧 Hablar con un asesor GFA", action: "escalate_human" }
+            ]);
+        }
+
+        function setQuickReplies(items) {
+            const container = document.getElementById('cx-quick-replies');
+            container.innerHTML = items.map(item => `
+                <button type="button" onclick="handleCxAction('${item.action}')" class="text-[11px] font-bold bg-slate-100 hover:bg-faBlue-900 hover:text-faYellow-400 text-faBlue-900 px-3 py-1.5 rounded-full border border-slate-200 transition-colors">
+                    ${item.label}
+                </button>
+            `).join('');
+        }
+
+        function appendBotMessage(html) {
+            const box = document.getElementById('cx-chat-messages');
+            const div = document.createElement('div');
+            div.className = "flex items-start gap-2.5";
+            div.innerHTML = `
+                <div class="w-7 h-7 rounded-full bg-faBlue-900 text-faYellow-400 flex items-center justify-center shrink-0 text-xs mt-0.5">
+                    <i class="fa-solid fa-robot"></i>
+                </div>
+                <div class="bg-white border border-slate-200 rounded-2xl rounded-tl-none p-3 text-slate-700 shadow-sm max-w-[84%] leading-relaxed">
+                    ${html}
+                </div>
+            `;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function appendUserMessage(text) {
+            const box = document.getElementById('cx-chat-messages');
+            const div = document.createElement('div');
+            div.className = "flex justify-end";
+            div.innerHTML = `
+                <div class="bg-clickRed-500 text-white rounded-2xl rounded-tr-none p-3 shadow-sm max-w-[80%] font-medium leading-relaxed">
+                    ${text}
+                </div>
+            `;
+            box.appendChild(div);
+            box.scrollTop = box.scrollHeight;
+        }
+
+        function handleCxAction(action) {
+            if (action === 'recover_discount') {
+                appendUserMessage("Aplicar cupón PLUS10 y pagar");
+                appState.cart.promoApplied = true;
+                document.getElementById('promo-code-input').value = 'PLUS10';
+                updateCartUI();
+
+                setTimeout(() => {
+                    const totals = calculateCartTotals();
+                    appendBotMessage(`✅ ¡Listo! Apliqué el cupón <strong>PLUS10 (10% de descuento)</strong> a tu boleto en ClickBus. Tu nuevo total es de <strong>$${totals.total.toLocaleString('es-MX')} MXN</strong>.<br><br>Te regreso directo al pago para que asegures tus asientos en Primera Plus.`);
+                    switchView('compra');
+                    toggleChatWidget(false);
+                    showToast("Cupón PLUS10 aplicado automáticamente por Genesys CX", "success");
+                }, 400);
+            } else if (action === 'recover_resume') {
+                appendUserMessage("Retomar compra ahora");
+                switchView('compra');
+                toggleChatWidget(false);
+            } else if (action === 'info_amenidades') {
+                appendUserMessage("Amenidades Primera Plus");
+                setTimeout(() => {
+                    appendBotMessage("✨ <strong>Primera Plus</strong> incluye: asientos reclinables con descansapiernas, pantallas táctiles individuales, Wi-Fi gratuito, lunch de cortesía al abordar, tomas de corriente 110V/USB y sanitarios separados para damas y caballeros.");
+                }, 350);
+            } else if (action === 'info_salas') {
+                appendUserMessage("Salas de Espera VIP");
+                setTimeout(() => {
+                    appendBotMessage("🛋️ Con tu boleto digital de <strong>Primera Plus</strong> emitido en ClickBus tienes acceso gratuito a nuestras Salas de Espera VIP en León, CDMX Norte, Guadalajara, Querétaro, Morelia y San Luis Potosí.");
+                }, 350);
+            } else if (action === 'escalate_human') {
+                appendUserMessage("Hablar con un asesor GFA");
+                setTimeout(() => {
+                    document.getElementById('chat-agent-status').textContent = "● Conectado con Contact Center GFA (León)";
+                    const hasCart = appState.cart.schedule && appState.cart.seats.length > 0;
+                    const contextNote = hasCart
+                        ? `Ya tengo en mi pantalla tu carrito de ClickBus para <strong>${appState.origin.split(' - ')[0]} → ${appState.destination.split(' - ')[0]}</strong> en <strong>${appState.cart.schedule.brand}</strong> (Asiento ${appState.cart.seats.join(', ')}).`
+                        : "Estoy listo para ayudarte con tus corridas de Flecha Amarilla y Primera Plus.";
+                    appendBotMessage(`🎧 Transfiriendo historial de Predictive Engagement al Contact Center de Grupo Flecha Amarilla...<br><br><em>"¡Hola! Soy Mariana de atención a clientes ClickBus / Flecha Amarilla. ${contextNote} ¿Cómo te ayudo a completar tu viaje?"</em>`);
+                }, 500);
+            }
+        }
+
+        function handleChatSubmit(e) {
+            e.preventDefault();
+            const input = document.getElementById('cx-chat-input');
+            const txt = input.value.trim();
+            if (!txt) return;
+            appendUserMessage(txt);
+            input.value = '';
+
+            const lower = txt.toLowerCase();
+            setTimeout(() => {
+                if (lower.includes('descuento') || lower.includes('cupon') || lower.includes('plus10') || lower.includes('pagar')) {
+                    handleCxAction('recover_discount');
+                } else if (lower.includes('sala') || lower.includes('vip')) {
+                    handleCxAction('info_salas');
+                } else if (lower.includes('agente') || lower.includes('asesor') || lower.includes('humano')) {
+                    handleCxAction('escalate_human');
+                } else {
+                    appendBotMessage("Con gusto te ayudo. Puedes usar los botones rápidos de abajo para aplicar tu cupón, consultar amenidades de Primera Plus o hablar con un asesor de Grupo Flecha Amarilla.");
+                }
+            }, 400);
+        }
+
+        // 9. UTILIDADES
+        function toggleMobileMenu() {
+            document.getElementById('mobile-menu').classList.toggle('hidden');
+        }
+
+        function formatReadableDate(dStr) {
+            if (!dStr) return "20 Nov 2026";
+            const [y, m, d] = dStr.split('-');
+            const months = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
+            return `${d} ${months[parseInt(m, 10) - 1]} ${y}`;
+        }
+
+        function showToast(msg, type = "info") {
+            const box = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            const styles = {
+                info: "bg-faBlue-900 text-white border-faBlue-800",
+                success: "bg-emerald-600 text-white border-emerald-500",
+                warning: "bg-faYellow-400 text-faBlue-950 border-faYellow-500"
+            };
+            el.className = `pointer-events-auto px-4 py-3 rounded-2xl shadow-xl border text-xs font-extrabold transition-all ${styles[type]}`;
+            el.textContent = msg;
+            box.appendChild(el);
+            setTimeout(() => {
+                el.style.opacity = '0';
+                setTimeout(() => el.remove(), 300);
+            }, 3400);
+        }
+    </script>
+</body>
+</html>
